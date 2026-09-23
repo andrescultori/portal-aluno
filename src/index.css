@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  --color-brand: #0f3d5c;
+  --color-brand-dark: #0a2a40;
+  --color-accent: #d4af37;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
