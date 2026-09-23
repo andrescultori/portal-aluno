@@ -14,19 +14,19 @@ export default function Navbar() {
 
   if (!perfil) {
     return (
-      <header className="sticky top-0 z-50 bg-[var(--color-brand)] shadow-md">
+      <header className="sticky top-0 z-50 bg-gunmetal-gray shadow-md">
         <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
-          <span className="text-lg font-semibold text-white">Portal do Aluno</span>
+          <img src="logo/monocromia-branco.png" alt="UniMissional" className="h-10 w-auto" />
         </div>
       </header>
     )
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-[var(--color-brand)] shadow-md">
+    <header className="sticky top-0 z-50 bg-gunmetal-gray shadow-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <NavLink to="/" className="text-lg font-semibold text-white">
-          Portal do Aluno
+        <NavLink to="/" className="flex items-center">
+          <img src="logo/monocromia-branco.png" alt="UniMissional" className="h-10 w-auto" />
         </NavLink>
 
         <button
@@ -38,7 +38,7 @@ export default function Navbar() {
         </button>
 
         <nav
-          className={`${open ? 'flex' : 'hidden'} absolute left-0 top-full w-full flex-col gap-1 bg-[var(--color-brand)] px-4 py-3 md:static md:flex md:w-auto md:flex-row md:items-center md:gap-1 md:bg-transparent md:py-0`}
+          className={`${open ? 'flex' : 'hidden'} absolute left-0 top-full w-full flex-col gap-1 bg-gunmetal-gray px-4 py-3 md:static md:flex md:w-auto md:flex-row md:items-center md:gap-1 md:bg-transparent md:py-0`}
         >
           <NavLink to="/" className={linkClass} end onClick={() => setOpen(false)}>
             Início
