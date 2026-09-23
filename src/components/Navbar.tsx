@@ -15,7 +15,7 @@ export default function Navbar() {
   if (!perfil) {
     return (
       <header className="sticky top-0 z-50 bg-gunmetal-gray shadow-md">
-        <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center px-brand-3 py-3">
           <img src="logo/monocromia-branco.png" alt="UniMissional" className="h-10 w-auto" />
         </div>
       </header>
@@ -24,7 +24,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-gunmetal-gray shadow-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-brand-3 py-3">
         <NavLink to="/" className="flex items-center">
           <img src="logo/monocromia-branco.png" alt="UniMissional" className="h-10 w-auto" />
         </NavLink>
@@ -38,7 +38,7 @@ export default function Navbar() {
         </button>
 
         <nav
-          className={`${open ? 'flex' : 'hidden'} absolute left-0 top-full w-full flex-col gap-1 bg-gunmetal-gray px-4 py-3 md:static md:flex md:w-auto md:flex-row md:items-center md:gap-1 md:bg-transparent md:py-0`}
+          className={`${open ? 'flex' : 'hidden'} absolute left-0 top-full w-full flex-col gap-1 bg-gunmetal-gray px-brand-3 py-3 md:static md:flex md:w-auto md:flex-row md:items-center md:gap-1 md:bg-transparent md:py-0`}
         >
           <NavLink to="/" className={linkClass} end onClick={() => setOpen(false)}>
             Início

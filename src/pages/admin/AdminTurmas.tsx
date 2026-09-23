@@ -48,7 +48,7 @@ export default function AdminTurmas() {
 
       <form
         onSubmit={criar}
-        className="mb-6 grid gap-3 rounded-xl border border-slate-200 bg-white p-5 md:grid-cols-5"
+        className="mb-6 grid gap-3 rounded-none border border-slate-200 bg-white p-5 md:grid-cols-5"
       >
         <input
           required
@@ -95,7 +95,7 @@ export default function AdminTurmas() {
       {carregando ? (
         <p className="text-slate-500">Carregando...</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-none border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>

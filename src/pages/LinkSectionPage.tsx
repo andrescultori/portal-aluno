@@ -12,7 +12,7 @@ export default function LinkSectionPage() {
     .sort((a, b) => a.ordem - b.ordem)
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="mx-auto max-w-4xl px-brand-3 py-brand-4">
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">{section.titulo}</h1>
 
       <div className="space-y-3">
@@ -25,7 +25,7 @@ export default function LinkSectionPage() {
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
+            className="block rounded-none border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
           >
             <p className="font-medium text-slate-900">{item.nome}</p>
             {item.descricao && <p className="text-sm text-slate-500">{item.descricao}</p>}

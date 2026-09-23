@@ -40,7 +40,7 @@ export default function Home() {
           ))
         )}
         <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-          <div className="px-4 text-center">
+          <div className="px-brand-3 text-center">
             <h1 className="text-3xl font-bold text-white md:text-5xl">
               Bem-vindo ao Portal do Aluno
             </h1>
@@ -49,7 +49,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-12">
+      <section className="mx-auto max-w-6xl px-brand-3 py-12">
         <p className="text-center text-slate-600">
           Acesse rapidamente o Manual do Aluno, o Google Classroom, o calendário
           acadêmico e registre sua presença em aula.

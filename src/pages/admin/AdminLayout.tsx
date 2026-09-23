@@ -9,7 +9,7 @@ const itemClass = ({ isActive }: { isActive: boolean }) =>
 
 export default function AdminLayout() {
   return (
-    <div className="mx-auto flex max-w-6xl gap-6 px-4 py-8">
+    <div className="mx-auto flex max-w-6xl gap-6 px-brand-3 py-brand-4">
       <aside className="w-52 shrink-0 space-y-1">
         <NavLink to="/admin" end className={itemClass}>
           Visão geral
