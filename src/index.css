@@ -1,9 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap');
 @import "tailwindcss";
 
-:root {
-  --color-brand: #0f3d5c;
-  --color-brand-dark: #0a2a40;
-  --color-accent: #d4af37;
+@theme {
+  /* Identidade visual UniMissional */
+  --color-pure-white: #ffffff;
+  --color-soft-pink: #ffe4dc;
+  --color-mandarin-orange: #fc6d00;
+  --color-mandarin-orange-dark: #d65d00;
+  --color-gunmetal-gray: #3b324e;
+  --color-onyx-black: #333333;
+
+  /* Herokid Condensed ainda não foi enviada (.woff2) — cai no fallback até chegar */
+  --font-display: 'Herokid Condensed', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Merriweather', ui-serif, Georgia, serif;
+
+  /* Espaçamento da marca — tokens à parte (p-brand-*, gap-brand-*), não
+     substituem a escala numérica padrão do Tailwind (px-4, py-2 etc.) já
+     usada em todo o app, pra não quebrar o layout existente de uma vez. */
+  --spacing-brand-1: 4px;
+  --spacing-brand-2: 8px;
+  --spacing-brand-3: 16px;
+  --spacing-brand-4: 32px;
+  --spacing-brand-5: 60px;
+  --spacing-brand-6: 96px;
+
+  /* Raio de borda da marca — usar em campos de formulário e botões
+     pequenos; blocos editoriais/cards preferem rounded-none ou rounded-xl. */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
 }
 
 html {
@@ -11,7 +36,7 @@ html {
 }
 
 body {
-  @apply bg-slate-50 text-slate-800 antialiased;
+  @apply bg-pure-white text-onyx-black antialiased;
 }
 
 #root {

@@ -86,7 +86,7 @@ export default function AdminTurmas() {
         </label>
         <button
           type="submit"
-          className="rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white md:col-span-5"
+          className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark md:col-span-5"
         >
           Criar turma
         </button>

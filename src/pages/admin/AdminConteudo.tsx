@@ -33,7 +33,7 @@ export default function AdminConteudo() {
             onClick={() => setAba(a.id)}
             className={`whitespace-nowrap px-3 py-2 text-sm font-medium ${
               aba === a.id
-                ? 'border-b-2 border-[var(--color-brand)] text-[var(--color-brand)]'
+                ? 'border-b-2 border-mandarin-orange text-onyx-black'
                 : 'text-slate-500'
             }`}
           >
@@ -124,7 +124,7 @@ function HeroForm() {
         </>
       )}
 
-      <button type="submit" className="rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white">
+      <button type="submit" className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark">
         Salvar
       </button>
     </form>
@@ -171,7 +171,7 @@ function ManualForm() {
           className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
       </label>
-      <button type="submit" className="rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white">
+      <button type="submit" className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark">
         Salvar
       </button>
     </form>
@@ -218,7 +218,7 @@ function ClassroomForm() {
           />
           <button
             onClick={() => salvar(link)}
-            className="rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white"
+            className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark"
           >
             Salvar
           </button>
@@ -324,7 +324,7 @@ function LinksForm() {
             />
             <button
               onClick={() => adicionarItem(secao.id)}
-              className="rounded-lg bg-[var(--color-brand)] px-3 py-2 text-sm text-white"
+              className="rounded-lg bg-mandarin-orange px-3 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark"
             >
               Adicionar
             </button>
@@ -384,7 +384,7 @@ function PaginasForm() {
           rows={4}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
-        <button type="submit" className="rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white">
+        <button type="submit" className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark">
           Criar página
         </button>
       </form>
