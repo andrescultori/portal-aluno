@@ -36,7 +36,12 @@ html {
 }
 
 body {
-  @apply bg-pure-white text-onyx-black antialiased;
+  @apply bg-pure-white text-onyx-black antialiased font-body;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
 }
 
 #root {
