@@ -85,10 +85,10 @@ export default function Presenca() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
+    <div className="mx-auto max-w-2xl px-brand-3 py-brand-4">
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Registro de Presença</h1>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border border-slate-200 bg-white p-6">
         {consultando && <p className="text-slate-500">Verificando janela de presença...</p>}
 
         {!consultando && erro && <p className="text-sm text-red-600">{erro}</p>}

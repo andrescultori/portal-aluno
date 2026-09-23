@@ -61,7 +61,7 @@ export default function Calendario() {
   }, [])
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="mx-auto max-w-4xl px-brand-3 py-brand-4">
       <h1 className="mb-2 text-2xl font-semibold text-slate-900">Calendário Acadêmico</h1>
       {usandoMock && (
         <p className="mb-6 text-sm text-amber-600">
@@ -74,7 +74,7 @@ export default function Calendario() {
         {eventos.map((evento) => (
           <li
             key={evento.id}
-            className="rounded-xl border border-slate-200 bg-white p-4"
+            className="rounded-none border border-slate-200 bg-white p-4"
           >
             <p className="font-medium text-slate-900">{evento.titulo}</p>
             <p className="text-sm text-slate-500">
@@ -88,7 +88,7 @@ export default function Calendario() {
         ))}
       </ul>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border border-slate-200 bg-white p-6">
         <h2 className="mb-2 text-lg font-medium text-slate-900">
           Como adicionar este calendário no celular
         </h2>

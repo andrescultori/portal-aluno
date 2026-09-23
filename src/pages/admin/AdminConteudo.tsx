@@ -78,7 +78,7 @@ function HeroForm() {
   if (!config) return <p className="text-slate-500">Carregando...</p>
 
   return (
-    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-none border border-slate-200 bg-white p-5">
       <label className="block text-sm font-medium text-slate-700">
         Modo
         <select
@@ -152,7 +152,7 @@ function ManualForm() {
   if (!manual) return <p className="text-slate-500">Carregando...</p>
 
   return (
-    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-none border border-slate-200 bg-white p-5">
       <label className="block text-sm font-medium text-slate-700">
         URL do PDF
         <input
@@ -198,7 +198,7 @@ function ClassroomForm() {
   return (
     <div className="max-w-xl space-y-4">
       {links.map((link, i) => (
-        <div key={link.id} className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+        <div key={link.id} className="rounded-none border border-slate-200 bg-white p-5 space-y-3">
           <p className="text-sm font-medium text-slate-700">Turma {i + 1}</p>
           <input
             value={link.nome_turma}
@@ -275,7 +275,7 @@ function LinksForm() {
   return (
     <div className="space-y-6">
       {sections.map((secao) => (
-        <div key={secao.id} className="rounded-xl border border-slate-200 bg-white p-5">
+        <div key={secao.id} className="rounded-none border border-slate-200 bg-white p-5">
           <div className="mb-3 flex gap-2">
             <input
               value={secao.titulo}
@@ -362,7 +362,7 @@ function PaginasForm() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={criar} className="max-w-xl space-y-3 rounded-xl border border-slate-200 bg-white p-5">
+      <form onSubmit={criar} className="max-w-xl space-y-3 rounded-none border border-slate-200 bg-white p-5">
         <input
           required
           placeholder="Título"

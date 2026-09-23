@@ -25,7 +25,7 @@
   --spacing-brand-6: 96px;
 
   /* Raio de borda da marca — usar em campos de formulário e botões
-     pequenos; blocos editoriais/cards preferem rounded-none ou rounded-xl. */
+     pequenos; cards e blocos editoriais usam rounded-none (Bold Editorial Grid). */
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 24px;

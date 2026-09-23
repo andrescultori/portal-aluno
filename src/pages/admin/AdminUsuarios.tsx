@@ -115,7 +115,7 @@ export default function AdminUsuarios() {
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Usuários autorizados</h1>
 
-      <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5">
+      <div className="mb-6 rounded-none border border-slate-200 bg-white p-5">
         <h2 className="mb-2 font-medium text-slate-900">Importar whitelist (CSV)</h2>
         <p className="mb-3 text-sm text-slate-500">
           Colunas esperadas: <code className="rounded bg-slate-100 px-1">nome,email,papel,turma</code>
@@ -129,7 +129,7 @@ export default function AdminUsuarios() {
 
       <form
         onSubmit={adicionarUsuario}
-        className="mb-6 grid gap-3 rounded-xl border border-slate-200 bg-white p-5 md:grid-cols-4"
+        className="mb-6 grid gap-3 rounded-none border border-slate-200 bg-white p-5 md:grid-cols-4"
       >
         <input
           required
@@ -177,7 +177,7 @@ export default function AdminUsuarios() {
       {carregando ? (
         <p className="text-slate-500">Carregando...</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-none border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>

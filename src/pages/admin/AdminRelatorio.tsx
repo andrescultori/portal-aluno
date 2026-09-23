@@ -95,7 +95,7 @@ export default function AdminRelatorio() {
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Relatório de presença</h1>
 
-      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-none border border-slate-200 bg-white p-4">
         <label className="text-sm text-slate-500">
           Turma
           <select
@@ -159,7 +159,7 @@ export default function AdminRelatorio() {
       {carregando ? (
         <p className="text-slate-500">Carregando...</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-none border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
