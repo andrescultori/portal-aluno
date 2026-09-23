@@ -6,6 +6,7 @@
   --color-pure-white: #ffffff;
   --color-soft-pink: #ffe4dc;
   --color-mandarin-orange: #fc6d00;
+  --color-mandarin-orange-dark: #d65d00;
   --color-gunmetal-gray: #3b324e;
   --color-onyx-black: #333333;
 
@@ -28,14 +29,6 @@
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 24px;
-}
-
-:root {
-  /* Aliases legados — hoje apontam pro gunmetal-gray da marca.
-     CTAs ainda não migraram para mandarin-orange (próxima etapa). */
-  --color-brand: var(--color-gunmetal-gray);
-  --color-brand-dark: #2a2438;
-  --color-accent: #d4af37;
 }
 
 html {

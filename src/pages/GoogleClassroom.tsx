@@ -14,7 +14,7 @@ export default function GoogleClassroom() {
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm transition hover:border-[var(--color-brand)] hover:shadow-md"
+            className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm transition hover:border-mandarin-orange hover:shadow-md"
           >
             <h2 className="text-xl font-medium text-slate-900">{link.nome_turma}</h2>
             <p className="mt-2 text-sm text-slate-500">Acessar turma no Classroom →</p>

@@ -117,7 +117,7 @@ export default function Presenca() {
               <button
                 onClick={confirmarPresenca}
                 disabled={confirmando}
-                className="w-full rounded-lg bg-[var(--color-brand)] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[var(--color-brand-dark)] disabled:opacity-60"
+                className="w-full rounded-lg bg-mandarin-orange px-4 py-2.5 text-lg font-bold text-onyx-black transition hover:bg-mandarin-orange-dark disabled:opacity-60"
               >
                 {confirmando ? 'Confirmando...' : 'Confirmar minha presença'}
               </button>

@@ -18,7 +18,7 @@ export default function ManualDoAluno() {
               href={manual.pdf_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block rounded-lg bg-[var(--color-brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-brand-dark)]"
+              className="inline-block rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark"
             >
               Download do Manual (PDF)
             </a>
