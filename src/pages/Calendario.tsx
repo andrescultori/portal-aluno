@@ -18,11 +18,25 @@ const apiKey = import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY
 const calendarId = import.meta.env.VITE_GOOGLE_CALENDAR_ID
 
 function formatarData(data: string) {
-  return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR', {
+  // Eventos de dia inteiro vêm como "2026-04-13"; eventos com horário já
+  // vêm como ISO completo ("2026-04-13T14:00:00-03:00") — só o primeiro
+  // formato precisa do "T00:00:00" pra virar meia-noite local.
+  const comHora = data.includes('T')
+  const date = comHora ? new Date(data) : new Date(data + 'T00:00:00')
+
+  const dataFormatada = date.toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
   })
+
+  if (!comHora) return dataFormatada
+
+  const horaFormatada = date.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  return `${dataFormatada} às ${horaFormatada}`
 }
 
 export default function Calendario() {
