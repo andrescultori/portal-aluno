@@ -6,6 +6,7 @@ interface EventoCalendario {
   inicio: string
   fim?: string
   descricao?: string
+  link?: string
 }
 
 const eventosMock: EventoCalendario[] = [
@@ -65,6 +66,7 @@ export default function Calendario() {
           id: string
           summary?: string
           description?: string
+          htmlLink?: string
           start: { date?: string; dateTime?: string }
           end?: { date?: string; dateTime?: string }
         }) => ({
@@ -73,6 +75,7 @@ export default function Calendario() {
           inicio: item.start.date ?? item.start.dateTime ?? '',
           fim: item.end?.date ?? item.end?.dateTime,
           descricao: item.description,
+          link: item.htmlLink,
         }))
         setEventos(items)
         setUsandoMock(false)
@@ -103,21 +106,40 @@ export default function Calendario() {
       )}
 
       <ul className="mb-10 space-y-3">
-        {eventos.map((evento) => (
-          <li
-            key={evento.id}
-            className="rounded-none border border-slate-200 bg-white p-4"
-          >
-            <p className="font-medium text-slate-900">{evento.titulo}</p>
-            <p className="text-sm text-slate-500">
-              {formatarData(evento.inicio)}
-              {evento.fim && evento.fim !== evento.inicio ? ` até ${formatarData(evento.fim)}` : ''}
-            </p>
-            {evento.descricao && (
-              <p className="mt-1 text-sm text-slate-600">{evento.descricao}</p>
-            )}
-          </li>
-        ))}
+        {eventos.map((evento) => {
+          const conteudo = (
+            <>
+              <p className="font-medium text-slate-900">{evento.titulo}</p>
+              <p className="text-sm text-slate-500">
+                {formatarData(evento.inicio)}
+                {evento.fim && evento.fim !== evento.inicio ? ` até ${formatarData(evento.fim)}` : ''}
+              </p>
+              {evento.descricao && (
+                <p className="mt-1 text-sm text-slate-600">{evento.descricao}</p>
+              )}
+            </>
+          )
+
+          return (
+            <li key={evento.id}>
+              {evento.link ? (
+                <a
+                  href={evento.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded-none border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
+                >
+                  {conteudo}
+                  <span className="mt-1 inline-block text-sm text-mandarin-orange">
+                    Ver no Google Agenda →
+                  </span>
+                </a>
+              ) : (
+                <div className="rounded-none border border-slate-200 bg-white p-4">{conteudo}</div>
+              )}
+            </li>
+          )
+        })}
       </ul>
 
       <div className="rounded-none border border-slate-200 bg-white p-6">
