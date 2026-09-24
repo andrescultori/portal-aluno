@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import type {
   ClassroomLink,
@@ -329,22 +329,40 @@ function LinksForm() {
     carregar()
   }
 
+  async function removerSecao(secao: LinkSection) {
+    if (!confirm(`Excluir a seção "${secao.titulo}" e todos os links dela?`)) return
+    setErro(null)
+    const { error } = await supabase.from('link_sections').delete().eq('id', secao.id)
+    if (error) {
+      setErro(`Erro ao excluir seção: ${error.message}`)
+      return
+    }
+    carregar()
+  }
+
   return (
     <div className="space-y-6">
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       {sections.map((secao) => (
         <div key={secao.id} className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="mb-3 flex gap-2">
+          <div className="mb-3 flex flex-wrap gap-2">
             <input
               value={secao.titulo}
               onChange={(e) => renomearSecao(secao, e.target.value)}
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium"
             />
             <button
               onClick={() => salvarSecao(secao)}
-              className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700"
+              className="shrink-0 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700"
             >
               Salvar título
+            </button>
+            <button
+              onClick={() => removerSecao(secao)}
+              aria-label={`Excluir seção ${secao.titulo}`}
+              className="shrink-0 rounded-lg p-2 text-red-600 hover:bg-red-50"
+            >
+              <Trash2 size={16} />
             </button>
           </div>
 
@@ -367,14 +385,14 @@ function LinksForm() {
               ))}
           </ul>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               placeholder="Nome do link"
               value={novoItem[secao.id]?.nome ?? ''}
               onChange={(e) =>
                 setNovoItem((prev) => ({ ...prev, [secao.id]: { ...prev[secao.id], nome: e.target.value, url: prev[secao.id]?.url ?? '' } }))
               }
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
             <input
               placeholder="URL"
@@ -382,11 +400,11 @@ function LinksForm() {
               onChange={(e) =>
                 setNovoItem((prev) => ({ ...prev, [secao.id]: { ...prev[secao.id], url: e.target.value, nome: prev[secao.id]?.nome ?? '' } }))
               }
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
             <button
               onClick={() => adicionarItem(secao.id)}
-              className="rounded-md bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
+              className="shrink-0 rounded-md bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
             >
               Adicionar
             </button>
