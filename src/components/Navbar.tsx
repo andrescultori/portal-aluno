@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { mockLinkSections } from '../data/mock'
+import { supabase } from '../lib/supabaseClient'
+import type { LinkSection } from '../types/database'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-md px-3 py-2 text-sm font-medium transition ${
@@ -11,6 +12,16 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 export default function Navbar() {
   const { perfil, signOut } = useAuth()
   const [open, setOpen] = useState(false)
+  const [sections, setSections] = useState<LinkSection[]>([])
+
+  useEffect(() => {
+    if (!perfil) return
+    supabase
+      .from('link_sections')
+      .select('*')
+      .order('ordem')
+      .then(({ data }) => setSections((data as LinkSection[]) ?? []))
+  }, [perfil])
 
   if (!perfil) {
     return (
@@ -55,7 +66,7 @@ export default function Navbar() {
           <NavLink to="/presenca" className={linkClass} onClick={() => setOpen(false)}>
             Presença
           </NavLink>
-          {mockLinkSections.map((section) => (
+          {sections.map((section) => (
             <NavLink
               key={section.id}
               to={`/links/${section.id}`}
