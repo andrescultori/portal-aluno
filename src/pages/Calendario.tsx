@@ -28,6 +28,7 @@ function formatarData(data: string) {
 export default function Calendario() {
   const [eventos, setEventos] = useState<EventoCalendario[]>(eventosMock)
   const [usandoMock, setUsandoMock] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
 
   useEffect(() => {
     if (!apiKey || !calendarId) return
@@ -38,10 +39,15 @@ export default function Calendario() {
     )}/events?key=${apiKey}&timeMin=${timeMin}&singleEvents=true&orderBy=startTime&maxResults=20`
 
     fetch(url)
-      .then((res) => res.json())
+      .then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data.error?.message ?? `Erro ${res.status} ao consultar o Google Calendar.`)
+        }
+        return data
+      })
       .then((data) => {
-        if (!data.items) return
-        const items: EventoCalendario[] = data.items.map((item: {
+        const items: EventoCalendario[] = (data.items ?? []).map((item: {
           id: string
           summary?: string
           description?: string
@@ -56,18 +62,30 @@ export default function Calendario() {
         }))
         setEventos(items)
         setUsandoMock(false)
+        setErro(null)
       })
-      .catch(() => setUsandoMock(true))
+      .catch((err) => {
+        setUsandoMock(true)
+        setErro(err instanceof Error ? err.message : 'Falha desconhecida ao consultar o Google Calendar.')
+      })
   }, [])
 
   return (
     <div className="mx-auto max-w-4xl px-brand-3 py-brand-4">
       <h1 className="mb-2 text-2xl font-semibold text-slate-900">Calendário Acadêmico</h1>
-      {usandoMock && (
+      {erro && (
+        <p className="mb-6 text-sm text-red-600">
+          Erro ao carregar o calendário real: {erro}
+        </p>
+      )}
+      {usandoMock && !erro && (!apiKey || !calendarId) && (
         <p className="mb-6 text-sm text-amber-600">
           Exibindo dados de exemplo. Configure VITE_GOOGLE_CALENDAR_API_KEY e
           VITE_GOOGLE_CALENDAR_ID para eventos reais.
         </p>
+      )}
+      {usandoMock && erro && (
+        <p className="mb-6 text-sm text-amber-600">Exibindo dados de exemplo enquanto isso.</p>
       )}
 
       <ul className="mb-10 space-y-3">
