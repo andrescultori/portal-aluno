@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import type {
   ClassroomLink,
@@ -351,12 +352,16 @@ function LinksForm() {
             {items
               .filter((i) => i.section_id === secao.id)
               .map((item) => (
-                <li key={item.id} className="flex items-center justify-between text-sm">
-                  <span>
+                <li key={item.id} className="flex items-center gap-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate">
                     {item.nome} — <span className="text-slate-400">{item.url}</span>
                   </span>
-                  <button onClick={() => removerItem(item.id)} className="text-red-600 hover:underline">
-                    remover
+                  <button
+                    onClick={() => removerItem(item.id)}
+                    aria-label={`Remover ${item.nome}`}
+                    className="shrink-0 rounded-md p-1.5 text-red-600 hover:bg-red-50"
+                  >
+                    <X size={16} />
                   </button>
                 </li>
               ))}

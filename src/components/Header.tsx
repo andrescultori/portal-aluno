@@ -5,9 +5,20 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import type { LinkSection } from '../types/database'
 
-const linkClass = ({ isActive }: { isActive: boolean }) =>
+interface ItemNav {
+  to: string
+  label: string
+  end?: boolean
+}
+
+const dropdownLinkClass = ({ isActive }: { isActive: boolean }) =>
   `block rounded-md px-3 py-2 text-sm font-medium transition ${
     isActive ? 'bg-soft-pink text-onyx-black' : 'text-gunmetal-gray hover:bg-neutral-tint'
+  }`
+
+const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `rounded-md px-3 py-1.5 text-sm font-medium transition ${
+    isActive ? 'bg-white/20 text-white' : 'text-white/85 hover:bg-white/10 hover:text-white'
   }`
 
 function iniciais(nome: string) {
@@ -41,6 +52,16 @@ export default function Header() {
     )
   }
 
+  const itens: ItemNav[] = [
+    { to: '/', label: 'Início', end: true },
+    { to: '/manual', label: 'Manual do Aluno' },
+    { to: '/classroom', label: 'Google Classroom' },
+    { to: '/calendario', label: 'Calendário' },
+    { to: '/presenca', label: 'Presença' },
+    ...sections.map((s) => ({ to: `/links/${s.id}`, label: s.titulo })),
+    ...(perfil.papel === 'equipe' ? [{ to: '/admin', label: 'Admin' }] : []),
+  ]
+
   return (
     <header className="header-gradiente relative px-brand-3 pb-6 pt-5 rounded-b-[36px]">
       <div className="mx-auto flex max-w-6xl items-start justify-between gap-3">
@@ -63,44 +84,41 @@ export default function Header() {
         <button
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? 'Fechar menu' : 'Abrir menu'}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white md:hidden"
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
+      {/* Menu completo — telas médias/grandes */}
+      <nav className="mx-auto mt-4 hidden max-w-6xl flex-wrap items-center gap-1 md:flex">
+        {itens.map((item) => (
+          <NavLink key={item.to} to={item.to} end={item.end} className={desktopLinkClass}>
+            {item.label}
+          </NavLink>
+        ))}
+        <button
+          onClick={signOut}
+          className="rounded-md px-3 py-1.5 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white"
+        >
+          Sair
+        </button>
+      </nav>
+
+      {/* Menu em painel — só mobile */}
       {open && (
-        <nav className="absolute right-brand-3 top-full z-50 mt-2 w-64 rounded-xl bg-white p-2 text-left shadow-[0_14px_34px_rgba(59,50,78,0.14)]">
-          <NavLink to="/" className={linkClass} end onClick={() => setOpen(false)}>
-            Início
-          </NavLink>
-          <NavLink to="/manual" className={linkClass} onClick={() => setOpen(false)}>
-            Manual do Aluno
-          </NavLink>
-          <NavLink to="/classroom" className={linkClass} onClick={() => setOpen(false)}>
-            Google Classroom
-          </NavLink>
-          <NavLink to="/calendario" className={linkClass} onClick={() => setOpen(false)}>
-            Calendário
-          </NavLink>
-          <NavLink to="/presenca" className={linkClass} onClick={() => setOpen(false)}>
-            Presença
-          </NavLink>
-          {sections.map((section) => (
+        <nav className="absolute right-brand-3 top-full z-50 mt-2 w-64 rounded-xl bg-white p-2 text-left shadow-[0_14px_34px_rgba(59,50,78,0.14)] md:hidden">
+          {itens.map((item) => (
             <NavLink
-              key={section.id}
-              to={`/links/${section.id}`}
-              className={linkClass}
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={dropdownLinkClass}
               onClick={() => setOpen(false)}
             >
-              {section.titulo}
+              {item.label}
             </NavLink>
           ))}
-          {perfil.papel === 'equipe' && (
-            <NavLink to="/admin" className={linkClass} onClick={() => setOpen(false)}>
-              Admin
-            </NavLink>
-          )}
           <button
             onClick={signOut}
             className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-neutral-tint"
