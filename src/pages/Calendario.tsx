@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Check, Copy } from 'lucide-react'
 
 interface EventoCalendario {
   id: string
@@ -28,6 +29,9 @@ const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 const apiKey = import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY
 const calendarId = import.meta.env.VITE_GOOGLE_CALENDAR_ID
+const urlCalendarioPublico = calendarId
+  ? `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarId)}/public/basic.ics`
+  : null
 
 function pad(n: number) {
   return String(n).padStart(2, '0')
@@ -112,6 +116,14 @@ export default function Calendario() {
   const [carregando, setCarregando] = useState(false)
   const [usandoMock, setUsandoMock] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [copiado, setCopiado] = useState(false)
+
+  function copiarUrl() {
+    if (!urlCalendarioPublico) return
+    navigator.clipboard.writeText(urlCalendarioPublico)
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
+  }
 
   useEffect(() => {
     if (!apiKey || !calendarId) return
@@ -313,9 +325,26 @@ export default function Calendario() {
         <ol className="list-inside list-decimal space-y-1 text-sm text-slate-600">
           <li>Abra o app Google Agenda no seu celular.</li>
           <li>Toque no ícone "+" e depois em "Usar URL".</li>
-          <li>Cole o link do calendário público da UniMissional.</li>
+          <li>Cole o link do calendário público da UniMissional (abaixo).</li>
           <li>Toque em "Adicionar" — os eventos aparecerão automaticamente.</li>
         </ol>
+
+        {urlCalendarioPublico ? (
+          <div className="mt-4 flex items-center gap-2 rounded-md border border-slate-200 bg-neutral-tint px-3 py-2">
+            <code className="flex-1 truncate text-xs text-gunmetal-gray">{urlCalendarioPublico}</code>
+            <button
+              onClick={copiarUrl}
+              aria-label="Copiar link do calendário"
+              className="shrink-0 rounded-md p-1.5 text-mandarin-orange hover:bg-soft-pink"
+            >
+              {copiado ? <Check size={16} /> : <Copy size={16} />}
+            </button>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-amber-600">
+            Link ainda não disponível — configure VITE_GOOGLE_CALENDAR_ID pra ele aparecer aqui.
+          </p>
+        )}
       </div>
     </div>
   )

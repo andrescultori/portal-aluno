@@ -52,8 +52,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       carregarPerfil(data.session).finally(() => setLoading(false))
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession)
+
+      // O Supabase dispara TOKEN_REFRESHED sempre que a aba volta a ficar
+      // em foco (ele reverifica a sessão) e INITIAL_SESSION duplica o que
+      // getSession() acima já tratou. Reagir a esses eventos como se fosse
+      // login/logout fazia a tela toda "piscar" pra Carregando... toda vez
+      // que o usuário voltava pra aba, sem necessidade — nada realmente
+      // mudou pro usuário nesses casos.
+      if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') return
+
       setLoading(true)
       carregarPerfil(newSession).finally(() => setLoading(false))
     })

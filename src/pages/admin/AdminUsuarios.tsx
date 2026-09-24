@@ -123,7 +123,13 @@ export default function AdminUsuarios() {
           <code className="rounded bg-slate-100 px-1">equipe</code>. Se sua planilha estiver em
           Excel, exporte como CSV antes de enviar.
         </p>
-        <input ref={fileRef} type="file" accept=".csv" onChange={importarArquivo} />
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv"
+          onChange={importarArquivo}
+          className="block w-full max-w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-neutral-tint file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gunmetal-gray"
+        />
         {mensagem && <p className="mt-3 text-sm text-slate-700">{mensagem}</p>}
       </div>
 
@@ -177,7 +183,7 @@ export default function AdminUsuarios() {
       {carregando ? (
         <p className="text-slate-500">Carregando...</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
