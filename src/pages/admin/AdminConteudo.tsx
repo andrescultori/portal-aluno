@@ -93,7 +93,7 @@ function HeroForm() {
   if (!config) return <p className="text-slate-500">Carregando...</p>
 
   return (
-    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-none border border-slate-200 bg-white p-5">
+    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-5">
       <label className="block text-sm font-medium text-slate-700">
         Modo
         <select
@@ -141,7 +141,7 @@ function HeroForm() {
 
       <FormFeedback erro={erro} salvo={salvo} />
 
-      <button type="submit" className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark">
+      <button type="submit" className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark">
         Salvar
       </button>
     </form>
@@ -178,7 +178,7 @@ function ManualForm() {
   if (!manual) return <p className="text-slate-500">Carregando...</p>
 
   return (
-    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-none border border-slate-200 bg-white p-5">
+    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-5">
       <label className="block text-sm font-medium text-slate-700">
         URL do PDF
         <input
@@ -200,7 +200,7 @@ function ManualForm() {
 
       <FormFeedback erro={erro} salvo={salvo} />
 
-      <button type="submit" className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark">
+      <button type="submit" className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark">
         Salvar
       </button>
     </form>
@@ -237,7 +237,7 @@ function ClassroomForm() {
     <div className="max-w-xl space-y-4">
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       {links.map((link, i) => (
-        <div key={link.id} className="rounded-none border border-slate-200 bg-white p-5 space-y-3">
+        <div key={link.id} className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
           <p className="text-sm font-medium text-slate-700">Turma {i + 1}</p>
           <input
             value={link.nome_turma}
@@ -258,7 +258,7 @@ function ClassroomForm() {
           {salvoId === link.id && <p className="text-sm text-green-600">Salvo com sucesso.</p>}
           <button
             onClick={() => salvar(link)}
-            className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark"
+            className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
           >
             Salvar
           </button>
@@ -332,7 +332,7 @@ function LinksForm() {
     <div className="space-y-6">
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       {sections.map((secao) => (
-        <div key={secao.id} className="rounded-none border border-slate-200 bg-white p-5">
+        <div key={secao.id} className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="mb-3 flex gap-2">
             <input
               value={secao.titulo}
@@ -381,7 +381,7 @@ function LinksForm() {
             />
             <button
               onClick={() => adicionarItem(secao.id)}
-              className="rounded-lg bg-mandarin-orange px-3 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark"
+              className="rounded-md bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
             >
               Adicionar
             </button>
@@ -430,7 +430,7 @@ function PaginasForm() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={criar} className="max-w-xl space-y-3 rounded-none border border-slate-200 bg-white p-5">
+      <form onSubmit={criar} className="max-w-xl space-y-3 rounded-xl border border-slate-200 bg-white p-5">
         <input
           required
           placeholder="Título"
@@ -453,7 +453,7 @@ function PaginasForm() {
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
         {erro && <p className="text-sm text-red-600">{erro}</p>}
-        <button type="submit" className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark">
+        <button type="submit" className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark">
           Criar página
         </button>
       </form>

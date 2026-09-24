@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -8,11 +8,16 @@
   --color-mandarin-orange: #fc6d00;
   --color-mandarin-orange-dark: #d65d00;
   --color-gunmetal-gray: #3b324e;
+  --color-gunmetal-gray-dark: #2a2438;
   --color-onyx-black: #333333;
+  --color-neutral-tint: #f7f5f2;
+  --color-muted-purple: #6b6478;
+  --color-chevron-gray: #9089a0;
 
-  /* Herokid Condensed ainda não foi enviada (.woff2) — cai no fallback até chegar */
-  --font-display: 'Herokid Condensed', ui-sans-serif, system-ui, sans-serif;
-  --font-body: 'Merriweather', ui-serif, Georgia, serif;
+  /* Herokid Condensed ainda não foi enviada (.woff2) — Merriweather é a
+     substituta oficial pra títulos até chegar (é a fonte secundária da marca). */
+  --font-display: 'Merriweather', ui-serif, Georgia, serif;
+  --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Espaçamento da marca — tokens à parte (p-brand-*, gap-brand-*), não
      substituem a escala numérica padrão do Tailwind (px-4, py-2 etc.) já
@@ -21,14 +26,13 @@
   --spacing-brand-2: 8px;
   --spacing-brand-3: 16px;
   --spacing-brand-4: 32px;
-  --spacing-brand-5: 60px;
-  --spacing-brand-6: 96px;
 
-  /* Raio de borda da marca — usar em campos de formulário e botões
-     pequenos; cards e blocos editoriais usam rounded-none (Bold Editorial Grid). */
+  /* Raio de borda — cards flutuantes (design system de produto), não mais
+     o Bold Editorial Grid de cantos retos do brand book institucional. */
   --radius-sm: 6px;
   --radius-md: 12px;
-  --radius-lg: 24px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
 }
 
 html {
@@ -42,6 +46,18 @@ body {
 h1,
 h2 {
   font-family: var(--font-display);
+  /* !important necessário: quase todo h1/h2 do app já carrega uma
+     classe Tailwind de peso (font-semibold etc.) com especificidade
+     maior que um seletor de elemento — sem isso o peso 700 nunca vence. */
+  font-weight: 700 !important;
+}
+
+/* Gradiente do header — ver DESIGN_SYSTEM.md. Scrim escuro obrigatório
+   por trás de texto branco sobre a parte laranja do gradiente. */
+.header-gradiente {
+  background:
+    linear-gradient(rgba(20, 15, 10, 0.3), rgba(20, 15, 10, 0.3)),
+    linear-gradient(135deg, var(--color-mandarin-orange) 0%, var(--color-gunmetal-gray) 100%);
 }
 
 #root {

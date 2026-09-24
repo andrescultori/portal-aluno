@@ -42,7 +42,7 @@ export default function LinkSectionPage() {
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block rounded-none border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
+            className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
           >
             <p className="font-medium text-slate-900">{item.nome}</p>
             {item.descricao && <p className="text-sm text-slate-500">{item.descricao}</p>}

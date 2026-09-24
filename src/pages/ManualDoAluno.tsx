@@ -26,7 +26,7 @@ export default function ManualDoAluno() {
         <p className="text-slate-500">Carregando...</p>
       ) : (
         <div className="grid gap-8 md:grid-cols-2">
-          <div className="rounded-none border border-slate-200 bg-white p-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-6">
             <h2 className="mb-2 text-lg font-medium text-slate-900">Baixar PDF completo</h2>
             <p className="mb-4 text-sm text-slate-500">
               Documento oficial com todas as normas acadêmicas e disciplinares.
@@ -36,7 +36,7 @@ export default function ManualDoAluno() {
                 href={manual.pdf_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark"
+                className="inline-block rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
               >
                 Download do Manual (PDF)
               </a>
@@ -45,7 +45,7 @@ export default function ManualDoAluno() {
             )}
           </div>
 
-          <div className="rounded-none border border-slate-200 bg-white p-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-6">
             <h2 className="mb-2 text-lg font-medium text-slate-900">Resumo</h2>
             <p className="whitespace-pre-line text-sm text-slate-600">
               {manual?.resumo ?? 'Resumo ainda não configurado.'}

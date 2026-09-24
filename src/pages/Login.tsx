@@ -9,7 +9,7 @@ export default function Login() {
 
   return (
     <div className="flex flex-1 items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-none border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="mb-1 text-2xl font-semibold text-slate-900">Portal do Aluno</h1>
         <p className="mb-6 text-sm text-slate-500">UniMissional</p>
 
@@ -21,7 +21,7 @@ export default function Login() {
 
         <button
           onClick={signInWithGoogle}
-          className="w-full rounded-lg bg-mandarin-orange px-4 py-2.5 text-lg font-bold text-onyx-black transition hover:bg-mandarin-orange-dark"
+          className="w-full rounded-md bg-gunmetal-gray px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark"
         >
           Entrar com Google
         </button>

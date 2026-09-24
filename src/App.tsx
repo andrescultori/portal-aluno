@@ -1,5 +1,5 @@
 import { HashRouter, Route, Routes } from 'react-router-dom'
-import Navbar from './components/Navbar'
+import Header from './components/Header'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
@@ -21,7 +21,7 @@ import AdminRelatorio from './pages/admin/AdminRelatorio'
 export default function App() {
   return (
     <HashRouter>
-      <Navbar />
+      <Header />
       <main className="flex-1">
         <Routes>
           <Route path="/login" element={<Login />} />
