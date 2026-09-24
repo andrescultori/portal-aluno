@@ -1,71 +1,81 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import {
+  BookOpen,
+  Calendar,
+  CheckSquare,
+  ChevronRight,
+  Link2,
+  Settings,
+  Video,
+  type LucideIcon,
+} from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import type { HeroConfig } from '../types/database'
+import type { LinkSection } from '../types/database'
+
+interface Modulo {
+  titulo: string
+  subtitulo: string
+  icone: LucideIcon
+  rota: string
+}
+
+const modulosFixos: Modulo[] = [
+  { titulo: 'Manual do Aluno', subtitulo: 'Baixe o PDF e veja o resumo', icone: BookOpen, rota: '/manual' },
+  { titulo: 'Google Classroom', subtitulo: 'Acesse suas turmas', icone: Video, rota: '/classroom' },
+  { titulo: 'Calendário Acadêmico', subtitulo: 'Eventos e datas importantes', icone: Calendar, rota: '/calendario' },
+  { titulo: 'Presença', subtitulo: 'Confirme sua presença em aula', icone: CheckSquare, rota: '/presenca' },
+]
 
 export default function Home() {
-  const [hero, setHero] = useState<HeroConfig | null>(null)
-  const [index, setIndex] = useState(0)
+  const { perfil } = useAuth()
+  const [sections, setSections] = useState<LinkSection[]>([])
 
   useEffect(() => {
     supabase
-      .from('hero_config')
+      .from('link_sections')
       .select('*')
-      .eq('id', 1)
-      .maybeSingle()
-      .then(({ data }) => setHero((data as HeroConfig) ?? null))
+      .order('ordem')
+      .then(({ data }) => setSections((data as LinkSection[]) ?? []))
   }, [])
 
-  const imagens = hero?.imagens ?? []
-
-  useEffect(() => {
-    if (hero?.modo !== 'carrossel' || imagens.length < 2) return
-    const timer = setInterval(
-      () => setIndex((i) => (i + 1) % imagens.length),
-      (hero.intervalo_segundos ?? 5) * 1000,
-    )
-    return () => clearInterval(timer)
-  }, [hero?.modo, hero?.intervalo_segundos, imagens.length])
+  const modulos: Modulo[] = [
+    ...modulosFixos,
+    ...sections.map((s) => ({
+      titulo: s.titulo,
+      subtitulo: 'Links úteis',
+      icone: Link2,
+      rota: `/links/${s.id}`,
+    })),
+    ...(perfil?.papel === 'equipe'
+      ? [{ titulo: 'Administração', subtitulo: 'Gerenciar conteúdo e usuários', icone: Settings, rota: '/admin' }]
+      : []),
+  ]
 
   return (
-    <div>
-      <section className="relative h-[360px] w-full overflow-hidden bg-gunmetal-gray md:h-[440px]">
-        {hero?.modo === 'video' && hero.video_url ? (
-          <video
-            src={hero.video_url}
-            className="h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-        ) : (
-          imagens.map((src, i) => (
-            <img
-              key={src}
-              src={src}
-              alt=""
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-                i === index ? 'opacity-100' : 'opacity-0'
-              }`}
-            />
-          ))
-        )}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-          <div className="px-brand-3 text-center">
-            <h1 className="text-3xl font-bold text-white md:text-5xl">
-              Bem-vindo ao Portal do Aluno
-            </h1>
-            <p className="mt-2 text-white/90">UniMissional</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-brand-3 py-12">
-        <p className="text-center text-slate-600">
-          Acesse rapidamente o Manual do Aluno, o Google Classroom, o calendário
-          acadêmico e registre sua presença em aula.
-        </p>
-      </section>
+    <div className="mx-auto max-w-3xl px-brand-3 py-brand-4">
+      <div className="space-y-3">
+        {modulos.map((modulo) => {
+          const Icone = modulo.icone
+          return (
+            <Link
+              key={modulo.rota}
+              to={modulo.rota}
+              className="flex items-center gap-3 rounded-lg bg-neutral-tint px-[15px] py-3.5 transition hover:bg-soft-pink"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-soft-pink">
+                <Icone size={20} strokeWidth={2} className="text-mandarin-orange" />
+              </span>
+              <span className="flex-1">
+                <span className="block text-[14.5px] font-semibold text-gunmetal-gray">{modulo.titulo}</span>
+                <span className="block text-xs text-muted-purple">{modulo.subtitulo}</span>
+              </span>
+              <ChevronRight size={18} className="shrink-0 text-chevron-gray" aria-hidden="true" />
+            </Link>
+          )
+        })}
+      </div>
     </div>
   )
 }

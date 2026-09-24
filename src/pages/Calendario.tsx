@@ -291,7 +291,7 @@ export default function Calendario() {
                   href={evento.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block rounded-none border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
+                  className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
                 >
                   {conteudo}
                   <span className="mt-1 inline-block text-sm text-mandarin-orange">
@@ -299,14 +299,14 @@ export default function Calendario() {
                   </span>
                 </a>
               ) : (
-                <div className="rounded-none border border-slate-200 bg-white p-4">{conteudo}</div>
+                <div className="rounded-xl border border-slate-200 bg-white p-4">{conteudo}</div>
               )}
             </li>
           )
         })}
       </ul>
 
-      <div className="rounded-none border border-slate-200 bg-white p-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
         <h2 className="mb-2 text-lg font-medium text-slate-900">
           Como adicionar este calendário no celular
         </h2>
