@@ -23,6 +23,8 @@ export default function AdminUsuarios() {
   const [mensagem, setMensagem] = useState<string | null>(null)
   const [novo, setNovo] = useState({ nome: '', email: '', papel: 'aluno' as Papel, turma_id: '' })
   const fileRef = useRef<HTMLInputElement>(null)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [edicao, setEdicao] = useState({ nome: '', email: '', papel: 'aluno' as Papel, turma_id: '' })
 
   async function carregar() {
     setCarregando(true)
@@ -63,6 +65,39 @@ export default function AdminUsuarios() {
 
   async function removerUsuario(id: string) {
     await supabase.from('allowed_users').delete().eq('id', id)
+    carregar()
+  }
+
+  function iniciarEdicao(usuario: AllowedUser) {
+    setEditandoId(usuario.id)
+    setEdicao({
+      nome: usuario.nome,
+      email: usuario.email,
+      papel: usuario.papel,
+      turma_id: usuario.turma_id ?? '',
+    })
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null)
+  }
+
+  async function salvarEdicao(id: string) {
+    setMensagem(null)
+    const { error } = await supabase
+      .from('allowed_users')
+      .update({
+        nome: edicao.nome,
+        email: edicao.email.toLowerCase(),
+        papel: edicao.papel,
+        turma_id: edicao.turma_id || null,
+      })
+      .eq('id', id)
+    if (error) {
+      setMensagem(`Erro ao salvar: ${error.message}`)
+      return
+    }
+    setEditandoId(null)
     carregar()
   }
 
@@ -190,36 +225,118 @@ export default function AdminUsuarios() {
                 <th className="px-4 py-2">Nome</th>
                 <th className="px-4 py-2">E-mail</th>
                 <th className="px-4 py-2">Papel</th>
+                <th className="px-4 py-2">Turma</th>
                 <th className="px-4 py-2">Ativo</th>
                 <th className="px-4 py-2"></th>
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((u) => (
-                <tr key={u.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2">{u.nome}</td>
-                  <td className="px-4 py-2">{u.email}</td>
-                  <td className="px-4 py-2 capitalize">{u.papel}</td>
-                  <td className="px-4 py-2">
-                    <button
-                      onClick={() => alternarAtivo(u)}
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        u.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {u.ativo ? 'Ativo' : 'Inativo'}
-                    </button>
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={() => removerUsuario(u.id)}
-                      className="text-xs font-medium text-red-600 hover:underline"
-                    >
-                      Remover
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {usuarios.map((u) =>
+                editandoId === u.id ? (
+                  <tr key={u.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">
+                      <input
+                        value={edicao.nome}
+                        onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="email"
+                        value={edicao.email}
+                        onChange={(e) => setEdicao({ ...edicao, email: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <select
+                        value={edicao.papel}
+                        onChange={(e) => setEdicao({ ...edicao, papel: e.target.value as Papel })}
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      >
+                        <option value="aluno">Aluno</option>
+                        <option value="equipe">Equipe</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-2">
+                      <select
+                        value={edicao.turma_id}
+                        onChange={(e) => setEdicao({ ...edicao, turma_id: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      >
+                        <option value="">Sem turma</option>
+                        {turmas.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        onClick={() => alternarAtivo(u)}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          u.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {u.ativo ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => salvarEdicao(u.id)}
+                          className="text-xs font-medium text-gunmetal-gray hover:underline"
+                        >
+                          Salvar
+                        </button>
+                        <button
+                          onClick={cancelarEdicao}
+                          className="text-xs font-medium text-slate-500 hover:underline"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={u.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">{u.nome}</td>
+                    <td className="px-4 py-2">{u.email}</td>
+                    <td className="px-4 py-2 capitalize">{u.papel}</td>
+                    <td className="px-4 py-2">
+                      {turmas.find((t) => t.id === u.turma_id)?.nome ?? '—'}
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        onClick={() => alternarAtivo(u)}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          u.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {u.ativo ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => iniciarEdicao(u)}
+                          className="text-xs font-medium text-slate-600 hover:underline"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => removerUsuario(u.id)}
+                          className="text-xs font-medium text-red-600 hover:underline"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         </div>

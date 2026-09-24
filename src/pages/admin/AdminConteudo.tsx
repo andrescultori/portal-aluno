@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Trash2, X } from 'lucide-react'
+import { Pencil, Trash2, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import type {
   ClassroomLink,
@@ -277,6 +277,12 @@ function LinksForm() {
   >({})
   const [erro, setErro] = useState<string | null>(null)
   const [secaoSalva, setSecaoSalva] = useState<string | null>(null)
+  const [itemEditando, setItemEditando] = useState<string | null>(null)
+  const [edicaoItem, setEdicaoItem] = useState<{ nome: string; url: string; descricao: string }>({
+    nome: '',
+    url: '',
+    descricao: '',
+  })
 
   async function carregar() {
     const [{ data: s }, { data: i }] = await Promise.all([
@@ -339,6 +345,34 @@ function LinksForm() {
     carregar()
   }
 
+  function iniciarEdicaoItem(item: LinkSectionItem) {
+    setItemEditando(item.id)
+    setEdicaoItem({ nome: item.nome, url: item.url, descricao: item.descricao ?? '' })
+  }
+
+  function cancelarEdicaoItem() {
+    setItemEditando(null)
+  }
+
+  async function salvarEdicaoItem(id: string) {
+    if (!edicaoItem.nome || !edicaoItem.url) return
+    setErro(null)
+    const { error } = await supabase
+      .from('link_section_items')
+      .update({
+        nome: edicaoItem.nome,
+        url: edicaoItem.url,
+        descricao: edicaoItem.descricao || null,
+      })
+      .eq('id', id)
+    if (error) {
+      setErro(`Erro ao salvar link: ${error.message}`)
+      return
+    }
+    setItemEditando(null)
+    carregar()
+  }
+
   async function removerSecao(secao: LinkSection) {
     if (!confirm(`Excluir a seção "${secao.titulo}" e todos os links dela?`)) return
     setErro(null)
@@ -382,24 +416,74 @@ function LinksForm() {
           <ul className="mb-3 space-y-2">
             {items
               .filter((i) => i.section_id === secao.id)
-              .map((item) => (
-                <li key={item.id} className="flex items-start gap-2 text-sm">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-gunmetal-gray">{item.nome}</p>
-                    {item.descricao && (
-                      <p className="truncate text-xs text-slate-400">{item.descricao}</p>
-                    )}
-                    <p className="truncate text-xs text-slate-400">{item.url}</p>
-                  </div>
-                  <button
-                    onClick={() => removerItem(item.id)}
-                    aria-label={`Remover ${item.nome}`}
-                    className="shrink-0 rounded-md p-1.5 text-red-600 hover:bg-red-50"
-                  >
-                    <X size={16} />
-                  </button>
-                </li>
-              ))}
+              .map((item) =>
+                itemEditando === item.id ? (
+                  <li key={item.id} className="space-y-2 rounded-lg border border-slate-200 p-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        placeholder="Nome do link"
+                        value={edicaoItem.nome}
+                        onChange={(e) => setEdicaoItem((prev) => ({ ...prev, nome: e.target.value }))}
+                        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      />
+                      <input
+                        placeholder="URL"
+                        value={edicaoItem.url}
+                        onChange={(e) => setEdicaoItem((prev) => ({ ...prev, url: e.target.value }))}
+                        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        placeholder="Descrição (opcional)"
+                        value={edicaoItem.descricao}
+                        onChange={(e) =>
+                          setEdicaoItem((prev) => ({ ...prev, descricao: e.target.value }))
+                        }
+                        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      />
+                      <div className="flex shrink-0 gap-2">
+                        <button
+                          onClick={() => salvarEdicaoItem(item.id)}
+                          className="rounded-md bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
+                        >
+                          Salvar
+                        </button>
+                        <button
+                          onClick={cancelarEdicaoItem}
+                          className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ) : (
+                  <li key={item.id} className="flex items-start gap-2 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-gunmetal-gray">{item.nome}</p>
+                      {item.descricao && (
+                        <p className="truncate text-xs text-slate-400">{item.descricao}</p>
+                      )}
+                      <p className="truncate text-xs text-slate-400">{item.url}</p>
+                    </div>
+                    <button
+                      onClick={() => iniciarEdicaoItem(item)}
+                      aria-label={`Editar ${item.nome}`}
+                      className="shrink-0 rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      onClick={() => removerItem(item.id)}
+                      aria-label={`Remover ${item.nome}`}
+                      className="shrink-0 rounded-md p-1.5 text-red-600 hover:bg-red-50"
+                    >
+                      <X size={16} />
+                    </button>
+                  </li>
+                ),
+              )}
           </ul>
 
           <div className="space-y-2">

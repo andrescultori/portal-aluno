@@ -13,6 +13,8 @@ export default function AdminTurmas() {
   const [turmas, setTurmas] = useState<Turma[]>([])
   const [form, setForm] = useState(vazio)
   const [carregando, setCarregando] = useState(true)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [edicao, setEdicao] = useState(vazio)
 
   async function carregar() {
     setCarregando(true)
@@ -39,6 +41,26 @@ export default function AdminTurmas() {
 
   async function remover(id: string) {
     await supabase.from('turmas').delete().eq('id', id)
+    carregar()
+  }
+
+  function iniciarEdicao(turma: Turma) {
+    setEditandoId(turma.id)
+    setEdicao({
+      nome: turma.nome,
+      horario_inicio: turma.horario_inicio,
+      horario_fim_presente: turma.horario_fim_presente,
+      horario_fim_atraso: turma.horario_fim_atraso,
+    })
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null)
+  }
+
+  async function salvarEdicao(id: string) {
+    await supabase.from('turmas').update(edicao).eq('id', id)
+    setEditandoId(null)
     carregar()
   }
 
@@ -108,32 +130,106 @@ export default function AdminTurmas() {
               </tr>
             </thead>
             <tbody>
-              {turmas.map((t) => (
-                <tr key={t.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2">{t.nome}</td>
-                  <td className="px-4 py-2">{t.horario_inicio}</td>
-                  <td className="px-4 py-2">{t.horario_fim_presente}</td>
-                  <td className="px-4 py-2">{t.horario_fim_atraso}</td>
-                  <td className="px-4 py-2">
-                    <button
-                      onClick={() => alternarAtivo(t)}
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        t.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                      }`}
-                    >
-                      {t.ativo ? 'Ativa' : 'Inativa'}
-                    </button>
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={() => remover(t.id)}
-                      className="text-xs font-medium text-red-600 hover:underline"
-                    >
-                      Remover
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {turmas.map((t) =>
+                editandoId === t.id ? (
+                  <tr key={t.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">
+                      <input
+                        value={edicao.nome}
+                        onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="time"
+                        value={edicao.horario_inicio}
+                        onChange={(e) => setEdicao({ ...edicao, horario_inicio: e.target.value })}
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="time"
+                        value={edicao.horario_fim_presente}
+                        onChange={(e) =>
+                          setEdicao({ ...edicao, horario_fim_presente: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="time"
+                        value={edicao.horario_fim_atraso}
+                        onChange={(e) =>
+                          setEdicao({ ...edicao, horario_fim_atraso: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        onClick={() => alternarAtivo(t)}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          t.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {t.ativo ? 'Ativa' : 'Inativa'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => salvarEdicao(t.id)}
+                          className="text-xs font-medium text-gunmetal-gray hover:underline"
+                        >
+                          Salvar
+                        </button>
+                        <button
+                          onClick={cancelarEdicao}
+                          className="text-xs font-medium text-slate-500 hover:underline"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={t.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">{t.nome}</td>
+                    <td className="px-4 py-2">{t.horario_inicio}</td>
+                    <td className="px-4 py-2">{t.horario_fim_presente}</td>
+                    <td className="px-4 py-2">{t.horario_fim_atraso}</td>
+                    <td className="px-4 py-2">
+                      <button
+                        onClick={() => alternarAtivo(t)}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          t.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {t.ativo ? 'Ativa' : 'Inativa'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => iniciarEdicao(t)}
+                          className="text-xs font-medium text-slate-600 hover:underline"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => remover(t.id)}
+                          className="text-xs font-medium text-red-600 hover:underline"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         </div>
