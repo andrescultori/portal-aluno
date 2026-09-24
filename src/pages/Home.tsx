@@ -1,24 +1,35 @@
 import { useEffect, useState } from 'react'
-import { mockHeroConfig } from '../data/mock'
+import { supabase } from '../lib/supabaseClient'
+import type { HeroConfig } from '../types/database'
 
 export default function Home() {
-  const hero = mockHeroConfig
-  const imagens = hero.imagens ?? []
+  const [hero, setHero] = useState<HeroConfig | null>(null)
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
-    if (hero.modo !== 'carrossel' || imagens.length < 2) return
+    supabase
+      .from('hero_config')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data }) => setHero((data as HeroConfig) ?? null))
+  }, [])
+
+  const imagens = hero?.imagens ?? []
+
+  useEffect(() => {
+    if (hero?.modo !== 'carrossel' || imagens.length < 2) return
     const timer = setInterval(
       () => setIndex((i) => (i + 1) % imagens.length),
-      hero.intervalo_segundos * 1000,
+      (hero.intervalo_segundos ?? 5) * 1000,
     )
     return () => clearInterval(timer)
-  }, [hero.modo, hero.intervalo_segundos, imagens.length])
+  }, [hero?.modo, hero?.intervalo_segundos, imagens.length])
 
   return (
     <div>
-      <section className="relative h-[360px] w-full overflow-hidden bg-slate-900 md:h-[440px]">
-        {hero.modo === 'video' && hero.video_url ? (
+      <section className="relative h-[360px] w-full overflow-hidden bg-gunmetal-gray md:h-[440px]">
+        {hero?.modo === 'video' && hero.video_url ? (
           <video
             src={hero.video_url}
             className="h-full w-full object-cover"

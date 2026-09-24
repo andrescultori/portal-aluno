@@ -1,15 +1,32 @@
+import { useEffect, useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { mockLinkSections, mockLinkSectionItems } from '../data/mock'
+import { supabase } from '../lib/supabaseClient'
+import type { LinkSection, LinkSectionItem } from '../types/database'
 
 export default function LinkSectionPage() {
   const { sectionId } = useParams()
-  const section = mockLinkSections.find((s) => s.id === sectionId)
+  const [section, setSection] = useState<LinkSection | null>(null)
+  const [items, setItems] = useState<LinkSectionItem[]>([])
+  const [carregando, setCarregando] = useState(true)
+
+  useEffect(() => {
+    if (!sectionId) return
+    setCarregando(true)
+    Promise.all([
+      supabase.from('link_sections').select('*').eq('id', sectionId).maybeSingle(),
+      supabase.from('link_section_items').select('*').eq('section_id', sectionId).order('ordem'),
+    ]).then(([{ data: s }, { data: i }]) => {
+      setSection((s as LinkSection) ?? null)
+      setItems((i as LinkSectionItem[]) ?? [])
+      setCarregando(false)
+    })
+  }, [sectionId])
+
+  if (carregando) {
+    return <p className="mx-auto max-w-4xl px-brand-3 py-brand-4 text-slate-500">Carregando...</p>
+  }
 
   if (!section) return <Navigate to="/" replace />
-
-  const items = mockLinkSectionItems
-    .filter((item) => item.section_id === section.id)
-    .sort((a, b) => a.ordem - b.ordem)
 
   return (
     <div className="mx-auto max-w-4xl px-brand-3 py-brand-4">
