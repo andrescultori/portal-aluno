@@ -51,9 +51,17 @@ export default function AdminConteudo() {
   )
 }
 
+function FormFeedback({ erro, salvo }: { erro: string | null; salvo: boolean }) {
+  if (erro) return <p className="text-sm text-red-600">{erro}</p>
+  if (salvo) return <p className="text-sm text-green-600">Salvo com sucesso.</p>
+  return null
+}
+
 function HeroForm() {
   const [config, setConfig] = useState<HeroConfig | null>(null)
   const [imagensTexto, setImagensTexto] = useState('')
+  const [erro, setErro] = useState<string | null>(null)
+  const [salvo, setSalvo] = useState(false)
 
   useEffect(() => {
     supabase
@@ -71,8 +79,15 @@ function HeroForm() {
   async function salvar(e: React.FormEvent) {
     e.preventDefault()
     if (!config) return
+    setErro(null)
+    setSalvo(false)
     const imagens = imagensTexto.split('\n').map((l) => l.trim()).filter(Boolean)
-    await supabase.from('hero_config').upsert({ ...config, id: 1, imagens })
+    const { error } = await supabase.from('hero_config').upsert({ ...config, id: 1, imagens })
+    if (error) {
+      setErro(`Erro ao salvar: ${error.message}`)
+      return
+    }
+    setSalvo(true)
   }
 
   if (!config) return <p className="text-slate-500">Carregando...</p>
@@ -124,6 +139,8 @@ function HeroForm() {
         </>
       )}
 
+      <FormFeedback erro={erro} salvo={salvo} />
+
       <button type="submit" className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark">
         Salvar
       </button>
@@ -133,6 +150,8 @@ function HeroForm() {
 
 function ManualForm() {
   const [manual, setManual] = useState<ManualDoAluno | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [salvo, setSalvo] = useState(false)
 
   useEffect(() => {
     supabase
@@ -146,7 +165,14 @@ function ManualForm() {
   async function salvar(e: React.FormEvent) {
     e.preventDefault()
     if (!manual) return
-    await supabase.from('manual_do_aluno').upsert({ ...manual, id: 1 })
+    setErro(null)
+    setSalvo(false)
+    const { error } = await supabase.from('manual_do_aluno').upsert({ ...manual, id: 1 })
+    if (error) {
+      setErro(`Erro ao salvar: ${error.message}`)
+      return
+    }
+    setSalvo(true)
   }
 
   if (!manual) return <p className="text-slate-500">Carregando...</p>
@@ -171,6 +197,9 @@ function ManualForm() {
           className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
       </label>
+
+      <FormFeedback erro={erro} salvo={salvo} />
+
       <button type="submit" className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark">
         Salvar
       </button>
@@ -180,6 +209,8 @@ function ManualForm() {
 
 function ClassroomForm() {
   const [links, setLinks] = useState<ClassroomLink[]>([])
+  const [erro, setErro] = useState<string | null>(null)
+  const [salvoId, setSalvoId] = useState<string | null>(null)
 
   async function carregar() {
     const { data } = await supabase.from('classroom_links').select('*').order('ordem')
@@ -191,12 +222,20 @@ function ClassroomForm() {
   }, [])
 
   async function salvar(link: ClassroomLink) {
-    await supabase.from('classroom_links').upsert(link)
+    setErro(null)
+    setSalvoId(null)
+    const { error } = await supabase.from('classroom_links').upsert(link)
+    if (error) {
+      setErro(`Erro ao salvar: ${error.message}`)
+      return
+    }
+    setSalvoId(link.id)
     carregar()
   }
 
   return (
     <div className="max-w-xl space-y-4">
+      {erro && <p className="text-sm text-red-600">{erro}</p>}
       {links.map((link, i) => (
         <div key={link.id} className="rounded-none border border-slate-200 bg-white p-5 space-y-3">
           <p className="text-sm font-medium text-slate-700">Turma {i + 1}</p>
@@ -216,6 +255,7 @@ function ClassroomForm() {
             placeholder="URL do Classroom"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
+          {salvoId === link.id && <p className="text-sm text-green-600">Salvo com sucesso.</p>}
           <button
             onClick={() => salvar(link)}
             className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark"
@@ -232,6 +272,7 @@ function LinksForm() {
   const [sections, setSections] = useState<LinkSection[]>([])
   const [items, setItems] = useState<LinkSectionItem[]>([])
   const [novoItem, setNovoItem] = useState<Record<string, { nome: string; url: string }>>({})
+  const [erro, setErro] = useState<string | null>(null)
 
   async function carregar() {
     const [{ data: s }, { data: i }] = await Promise.all([
@@ -246,34 +287,50 @@ function LinksForm() {
     carregar()
   }, [])
 
-  async function renomearSecao(secao: LinkSection, titulo: string) {
+  function renomearSecao(secao: LinkSection, titulo: string) {
     setSections((prev) => prev.map((s) => (s.id === secao.id ? { ...s, titulo } : s)))
   }
 
   async function salvarSecao(secao: LinkSection) {
-    await supabase.from('link_sections').update({ titulo: secao.titulo }).eq('id', secao.id)
+    setErro(null)
+    const { error } = await supabase
+      .from('link_sections')
+      .update({ titulo: secao.titulo })
+      .eq('id', secao.id)
+    if (error) setErro(`Erro ao salvar título: ${error.message}`)
   }
 
   async function adicionarItem(sectionId: string) {
     const dados = novoItem[sectionId]
     if (!dados?.nome || !dados?.url) return
-    await supabase.from('link_section_items').insert({
+    setErro(null)
+    const { error } = await supabase.from('link_section_items').insert({
       section_id: sectionId,
       nome: dados.nome,
       url: dados.url,
       ordem: items.filter((i) => i.section_id === sectionId).length + 1,
     })
+    if (error) {
+      setErro(`Erro ao adicionar link: ${error.message}`)
+      return
+    }
     setNovoItem((prev) => ({ ...prev, [sectionId]: { nome: '', url: '' } }))
     carregar()
   }
 
   async function removerItem(id: string) {
-    await supabase.from('link_section_items').delete().eq('id', id)
+    setErro(null)
+    const { error } = await supabase.from('link_section_items').delete().eq('id', id)
+    if (error) {
+      setErro(`Erro ao remover: ${error.message}`)
+      return
+    }
     carregar()
   }
 
   return (
     <div className="space-y-6">
+      {erro && <p className="text-sm text-red-600">{erro}</p>}
       {sections.map((secao) => (
         <div key={secao.id} className="rounded-none border border-slate-200 bg-white p-5">
           <div className="mb-3 flex gap-2">
@@ -338,6 +395,7 @@ function LinksForm() {
 function PaginasForm() {
   const [paginas, setPaginas] = useState<InfoPage[]>([])
   const [nova, setNova] = useState({ titulo: '', slug: '', conteudo: '' })
+  const [erro, setErro] = useState<string | null>(null)
 
   async function carregar() {
     const { data } = await supabase.from('info_pages').select('*').order('ordem')
@@ -350,13 +408,23 @@ function PaginasForm() {
 
   async function criar(e: React.FormEvent) {
     e.preventDefault()
-    await supabase.from('info_pages').insert({ ...nova, ordem: paginas.length + 1 })
+    setErro(null)
+    const { error } = await supabase.from('info_pages').insert({ ...nova, ordem: paginas.length + 1 })
+    if (error) {
+      setErro(`Erro ao criar página: ${error.message}`)
+      return
+    }
     setNova({ titulo: '', slug: '', conteudo: '' })
     carregar()
   }
 
   async function remover(id: string) {
-    await supabase.from('info_pages').delete().eq('id', id)
+    setErro(null)
+    const { error } = await supabase.from('info_pages').delete().eq('id', id)
+    if (error) {
+      setErro(`Erro ao remover: ${error.message}`)
+      return
+    }
     carregar()
   }
 
@@ -384,6 +452,7 @@ function PaginasForm() {
           rows={4}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
+        {erro && <p className="text-sm text-red-600">{erro}</p>}
         <button type="submit" className="rounded-lg bg-mandarin-orange px-4 py-2 text-lg font-bold text-onyx-black hover:bg-mandarin-orange-dark">
           Criar página
         </button>
