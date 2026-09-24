@@ -95,7 +95,7 @@ export default function AdminTurmas() {
       {carregando ? (
         <p className="text-slate-500">Carregando...</p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
