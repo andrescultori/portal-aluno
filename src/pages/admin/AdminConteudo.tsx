@@ -272,8 +272,11 @@ function ClassroomForm() {
 function LinksForm() {
   const [sections, setSections] = useState<LinkSection[]>([])
   const [items, setItems] = useState<LinkSectionItem[]>([])
-  const [novoItem, setNovoItem] = useState<Record<string, { nome: string; url: string }>>({})
+  const [novoItem, setNovoItem] = useState<
+    Record<string, { nome: string; url: string; descricao: string }>
+  >({})
   const [erro, setErro] = useState<string | null>(null)
+  const [secaoSalva, setSecaoSalva] = useState<string | null>(null)
 
   async function carregar() {
     const [{ data: s }, { data: i }] = await Promise.all([
@@ -294,11 +297,17 @@ function LinksForm() {
 
   async function salvarSecao(secao: LinkSection) {
     setErro(null)
+    setSecaoSalva(null)
     const { error } = await supabase
       .from('link_sections')
       .update({ titulo: secao.titulo })
       .eq('id', secao.id)
-    if (error) setErro(`Erro ao salvar título: ${error.message}`)
+    if (error) {
+      setErro(`Erro ao salvar título: ${error.message}`)
+      return
+    }
+    setSecaoSalva(secao.id)
+    setTimeout(() => setSecaoSalva((atual) => (atual === secao.id ? null : atual)), 2000)
   }
 
   async function adicionarItem(sectionId: string) {
@@ -309,13 +318,14 @@ function LinksForm() {
       section_id: sectionId,
       nome: dados.nome,
       url: dados.url,
+      descricao: dados.descricao || null,
       ordem: items.filter((i) => i.section_id === sectionId).length + 1,
     })
     if (error) {
       setErro(`Erro ao adicionar link: ${error.message}`)
       return
     }
-    setNovoItem((prev) => ({ ...prev, [sectionId]: { nome: '', url: '' } }))
+    setNovoItem((prev) => ({ ...prev, [sectionId]: { nome: '', url: '', descricao: '' } }))
     carregar()
   }
 
@@ -345,7 +355,7 @@ function LinksForm() {
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       {sections.map((secao) => (
         <div key={secao.id} className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-1 flex flex-wrap gap-2">
             <input
               value={secao.titulo}
               onChange={(e) => renomearSecao(secao, e.target.value)}
@@ -365,15 +375,22 @@ function LinksForm() {
               <Trash2 size={16} />
             </button>
           </div>
+          {secaoSalva === secao.id && (
+            <p className="mb-2 text-xs text-green-600">Título salvo.</p>
+          )}
 
-          <ul className="mb-3 space-y-1">
+          <ul className="mb-3 space-y-2">
             {items
               .filter((i) => i.section_id === secao.id)
               .map((item) => (
-                <li key={item.id} className="flex items-center gap-2 text-sm">
-                  <span className="min-w-0 flex-1 truncate">
-                    {item.nome} — <span className="text-slate-400">{item.url}</span>
-                  </span>
+                <li key={item.id} className="flex items-start gap-2 text-sm">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-gunmetal-gray">{item.nome}</p>
+                    {item.descricao && (
+                      <p className="truncate text-xs text-slate-400">{item.descricao}</p>
+                    )}
+                    <p className="truncate text-xs text-slate-400">{item.url}</p>
+                  </div>
                   <button
                     onClick={() => removerItem(item.id)}
                     aria-label={`Remover ${item.nome}`}
@@ -385,29 +402,50 @@ function LinksForm() {
               ))}
           </ul>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              placeholder="Nome do link"
-              value={novoItem[secao.id]?.nome ?? ''}
-              onChange={(e) =>
-                setNovoItem((prev) => ({ ...prev, [secao.id]: { ...prev[secao.id], nome: e.target.value, url: prev[secao.id]?.url ?? '' } }))
-              }
-              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <input
-              placeholder="URL"
-              value={novoItem[secao.id]?.url ?? ''}
-              onChange={(e) =>
-                setNovoItem((prev) => ({ ...prev, [secao.id]: { ...prev[secao.id], url: e.target.value, nome: prev[secao.id]?.nome ?? '' } }))
-              }
-              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            />
-            <button
-              onClick={() => adicionarItem(secao.id)}
-              className="shrink-0 rounded-md bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
-            >
-              Adicionar
-            </button>
+          <div className="space-y-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                placeholder="Nome do link"
+                value={novoItem[secao.id]?.nome ?? ''}
+                onChange={(e) =>
+                  setNovoItem((prev) => ({
+                    ...prev,
+                    [secao.id]: { nome: e.target.value, url: prev[secao.id]?.url ?? '', descricao: prev[secao.id]?.descricao ?? '' },
+                  }))
+                }
+                className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+              <input
+                placeholder="URL"
+                value={novoItem[secao.id]?.url ?? ''}
+                onChange={(e) =>
+                  setNovoItem((prev) => ({
+                    ...prev,
+                    [secao.id]: { nome: prev[secao.id]?.nome ?? '', url: e.target.value, descricao: prev[secao.id]?.descricao ?? '' },
+                  }))
+                }
+                className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                placeholder="Descrição (opcional)"
+                value={novoItem[secao.id]?.descricao ?? ''}
+                onChange={(e) =>
+                  setNovoItem((prev) => ({
+                    ...prev,
+                    [secao.id]: { nome: prev[secao.id]?.nome ?? '', url: prev[secao.id]?.url ?? '', descricao: e.target.value },
+                  }))
+                }
+                className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+              <button
+                onClick={() => adicionarItem(secao.id)}
+                className="shrink-0 rounded-md bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
+              >
+                Adicionar
+              </button>
+            </div>
           </div>
         </div>
       ))}
