@@ -24,7 +24,7 @@
 
 A complete web portal for UniMissional: Google authentication restricted to an institutional whitelist, QR-code attendance with the status computed server-side, and institutional content (Student Handbook, Google Classroom, Calendar, link sections) managed through an admin panel — all built on React + Supabase (Postgres with RLS), automatically deployed to Vercel on every push.
 
-**Live site:** access is restricted to the institution's whitelist (Google login). To see the internal screens without an authorized account, check the screenshots below.
+**Live site:** [portal.unimissional.org.br](https://portal.unimissional.org.br) — access is restricted to the institution's whitelist (Google login). To see the internal screens without an authorized account, check the screenshots below.
 
 ![Home — module list](screenshots/home.png)
 
