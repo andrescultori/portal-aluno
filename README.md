@@ -24,7 +24,7 @@
 
 Portal web completo para a UniMissional: autenticação Google restrita a uma whitelist institucional, presença via QR Code com status calculado no servidor, e conteúdo (Manual do Aluno, Google Classroom, Calendário, seções de links) gerenciado por um painel admin — tudo em React + Supabase (Postgres com RLS), publicado automaticamente na Vercel a cada push.
 
-**Site:** acesso restrito à whitelist da instituição (login via Google). Pra ver as telas internas sem precisar de uma conta autorizada, veja os screenshots abaixo.
+**Site:** [portal.unimissional.org.br](https://portal.unimissional.org.br) — acesso restrito à whitelist da instituição (login via Google). Pra ver as telas internas sem precisar de uma conta autorizada, veja os screenshots abaixo.
 
 ![Home — lista de módulos](screenshots/home.png)
 
