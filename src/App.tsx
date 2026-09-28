@@ -1,4 +1,4 @@
-import { HashRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -20,7 +20,7 @@ import AdminRelatorio from './pages/admin/AdminRelatorio'
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Header />
       <main className="flex-1">
         <Routes>
@@ -102,6 +102,6 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
-    </HashRouter>
+    </BrowserRouter>
   )
 }

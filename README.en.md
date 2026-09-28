@@ -22,9 +22,9 @@
 
 ---
 
-A complete web portal for UniMissional: Google authentication restricted to an institutional whitelist, QR-code attendance with the status computed server-side, and institutional content (Student Handbook, Google Classroom, Calendar, link sections) managed through an admin panel — all built on React + Supabase (Postgres with RLS), automatically deployed to GitHub Pages on every push.
+A complete web portal for UniMissional: Google authentication restricted to an institutional whitelist, QR-code attendance with the status computed server-side, and institutional content (Student Handbook, Google Classroom, Calendar, link sections) managed through an admin panel — all built on React + Supabase (Postgres with RLS), automatically deployed to Vercel on every push.
 
-**Live site:** [andrescultori.github.io/portal-aluno](https://andrescultori.github.io/portal-aluno/) — access is restricted to the institution's whitelist (Google login). To see the internal screens without an authorized account, check the screenshots below.
+**Live site:** access is restricted to the institution's whitelist (Google login). To see the internal screens without an authorized account, check the screenshots below.
 
 ![Home — module list](screenshots/home.png)
 
@@ -53,7 +53,7 @@ Edge Function computes present/late/absent server-side, based on the class sched
         ↓
 Staff manage content (Handbook, Classroom, Calendar, links) through the admin panel
         ↓
-Everything auto-deploys to GitHub Pages on every push
+Everything auto-deploys to Vercel on every push
 ```
 
 In practice: the student just scans the QR code printed in the classroom to confirm attendance — the system decides, by the server's clock, whether that's on-time, late, or absent, with no way for the student to manipulate the result through their own phone's clock.
@@ -82,11 +82,11 @@ In practice: the student just scans the QR code printed in the classroom to conf
 
 | Category | Tool | Use |
 |---|---|---|
-| **Frontend** | React + TypeScript + Vite | SPA with `HashRouter` (works on GitHub Pages with no server config) |
+| **Frontend** | React + TypeScript + Vite | SPA with `BrowserRouter` (SPA rewrite configured in `vercel.json`) |
 | **Styling** | Tailwind CSS v4 | Custom design system with color, radius, and typography tokens |
 | **Backend** | Supabase (Postgres) | Database, auth, and access rules via Row Level Security |
 | **Server-side logic** | Supabase Edge Functions | Attendance status calculation — never trusted to the client |
-| **Deploy** | GitHub Actions | Automatic build and publish to GitHub Pages on every push to `main` |
+| **Deploy** | Vercel | Automatic build and publish (production + PR previews) on every push |
 | **Calendar** | Google Calendar API | Real-time academic events |
 | **Icons** | Lucide | Thin-stroke icons across the admin panel and home screen |
 
@@ -123,7 +123,7 @@ Supabase Auth (Google OAuth) ──► allowed_users (RLS: email must be on the 
 - [`src/contexts/AuthContext.tsx`](src/contexts/AuthContext.tsx) — Supabase session + whitelist check
 - [`src/pages/admin`](src/pages/admin) — admin panel (content CRUD, whitelist, report)
 - [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md) — color, typography, and component tokens for the visual identity
-- [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) — build and deploy pipeline
+- [`vercel.json`](vercel.json) — SPA rewrite (every route falls back to `index.html`)
 
 ---
 
@@ -145,7 +145,7 @@ npm run dev
 
 ### Deploy
 
-Automatic via GitHub Actions on every push to `main`. Set these in Settings → Secrets and variables → Actions: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and optionally `VITE_GOOGLE_CALENDAR_API_KEY`/`VITE_GOOGLE_CALENDAR_ID`. Under Settings → Pages, select **GitHub Actions** as the source.
+Automatic via Vercel on every push to `main` (and a preview deploy on every PR). Connect the repository at [vercel.com](https://vercel.com) (Import Project → GitHub) and set these under Settings → Environment Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and optionally `VITE_GOOGLE_CALENDAR_API_KEY`/`VITE_GOOGLE_CALENDAR_ID`.
 
 ---
 
