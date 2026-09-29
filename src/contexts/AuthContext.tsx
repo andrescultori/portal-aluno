@@ -8,7 +8,7 @@ interface AuthContextValue {
   perfil: AllowedUser | null
   loading: boolean
   naoAutorizado: boolean
-  signInWithGoogle: () => Promise<void>
+  signInWithGoogle: (destino?: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -70,10 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  async function signInWithGoogle() {
+  async function signInWithGoogle(destino?: string) {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + window.location.pathname },
+      options: { redirectTo: window.location.origin + (destino ?? window.location.pathname) },
     })
   }
 

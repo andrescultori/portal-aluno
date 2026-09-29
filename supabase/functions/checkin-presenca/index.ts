@@ -15,6 +15,7 @@ interface Turma {
   horario_fim_presente: string
   horario_fim_atraso: string
   ativo: boolean
+  qr_token: string
 }
 
 interface AllowedUser {
@@ -181,6 +182,22 @@ Deno.serve(async (req) => {
           janela_aberta: true,
           turma_nome: turma.nome,
           ja_registrado: false,
+        }),
+        { headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // A partir daqui a ação é 'checkin': só aceita se veio do QR Code certo
+    // (o token só existe impresso no QR afixado na sala da turma).
+    const tokenRecebido = typeof body?.token === 'string' ? body.token : null
+    if (!tokenRecebido || tokenRecebido !== turma.qr_token) {
+      return new Response(
+        JSON.stringify({
+          janela_aberta: true,
+          turma_nome: turma.nome,
+          ja_registrado: false,
+          qr_invalido: true,
+          mensagem: 'QR Code inválido. Escaneie o QR Code afixado na sala de aula da sua turma.',
         }),
         { headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' } },
       )

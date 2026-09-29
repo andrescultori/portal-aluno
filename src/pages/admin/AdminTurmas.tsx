@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../../lib/supabaseClient'
 import type { Turma } from '../../types/database'
 
@@ -15,10 +16,17 @@ export default function AdminTurmas() {
   const [carregando, setCarregando] = useState(true)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [edicao, setEdicao] = useState(vazio)
+  const [qrTurma, setQrTurma] = useState<Turma | null>(null)
+  const [qrToken, setQrToken] = useState<string | null>(null)
+  const [qrCarregando, setQrCarregando] = useState(false)
+  const [qrErro, setQrErro] = useState<string | null>(null)
 
   async function carregar() {
     setCarregando(true)
-    const { data } = await supabase.from('turmas').select('*').order('nome')
+    const { data } = await supabase
+      .from('turmas')
+      .select('id, nome, horario_inicio, horario_fim_presente, horario_fim_atraso, ativo')
+      .order('nome')
     setTurmas((data as Turma[]) ?? [])
     setCarregando(false)
   }
@@ -62,6 +70,47 @@ export default function AdminTurmas() {
     await supabase.from('turmas').update(edicao).eq('id', id)
     setEditandoId(null)
     carregar()
+  }
+
+  async function abrirQrCode(turma: Turma) {
+    setQrTurma(turma)
+    setQrToken(null)
+    setQrErro(null)
+    setQrCarregando(true)
+    const { data, error } = await supabase.rpc('get_turma_qr_token', { p_turma_id: turma.id })
+    if (error) {
+      setQrErro(`Erro ao carregar QR Code: ${error.message}`)
+    } else {
+      setQrToken(data as string)
+    }
+    setQrCarregando(false)
+  }
+
+  function fecharQrCode() {
+    setQrTurma(null)
+    setQrToken(null)
+    setQrErro(null)
+  }
+
+  async function regenerarQrCode() {
+    if (!qrTurma) return
+    if (
+      !confirm(
+        `Gerar um novo QR Code para "${qrTurma.nome}"? O QR Code impresso atualmente deixa de funcionar.`,
+      )
+    )
+      return
+    setQrCarregando(true)
+    setQrErro(null)
+    const { data, error } = await supabase.rpc('regenerate_turma_qr_token', {
+      p_turma_id: qrTurma.id,
+    })
+    if (error) {
+      setQrErro(`Erro ao gerar novo QR Code: ${error.message}`)
+    } else {
+      setQrToken(data as string)
+    }
+    setQrCarregando(false)
   }
 
   return (
@@ -214,6 +263,12 @@ export default function AdminTurmas() {
                     <td className="px-4 py-2 text-right">
                       <div className="flex justify-end gap-3">
                         <button
+                          onClick={() => abrirQrCode(t)}
+                          className="text-xs font-medium text-slate-600 hover:underline"
+                        >
+                          QR Code
+                        </button>
+                        <button
                           onClick={() => iniciarEdicao(t)}
                           className="text-xs font-medium text-slate-600 hover:underline"
                         >
@@ -234,6 +289,68 @@ export default function AdminTurmas() {
           </table>
         </div>
       )}
+
+      {qrTurma && (
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <h2 className="font-medium text-slate-900">QR Code — {qrTurma.nome}</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Imprima e afixe na sala. Quem escanear precisa estar logado no portal — a
+                presença só é confirmada se o QR bater com a turma do aluno.
+              </p>
+            </div>
+            <button
+              onClick={fecharQrCode}
+              className="shrink-0 text-xs font-medium text-slate-500 hover:underline"
+            >
+              Fechar
+            </button>
+          </div>
+
+          {qrErro && <p className="mb-3 text-sm text-red-600">{qrErro}</p>}
+
+          {qrCarregando && !qrToken ? (
+            <p className="text-sm text-slate-500">Carregando...</p>
+          ) : (
+            qrToken && (
+              <div>
+                <div id="qr-print-area" className="flex flex-col items-center gap-3 py-2">
+                  <QRCodeSVG
+                    value={`${window.location.origin}/presenca?token=${qrToken}`}
+                    size={220}
+                  />
+                  <p className="text-center font-medium text-slate-900">{qrTurma.nome}</p>
+                </div>
+
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <button
+                    onClick={() => window.print()}
+                    className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
+                  >
+                    Imprimir
+                  </button>
+                  <button
+                    onClick={regenerarQrCode}
+                    disabled={qrCarregando}
+                    className="rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-60"
+                  >
+                    Gerar novo QR Code
+                  </button>
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #qr-print-area, #qr-print-area * { visibility: visible; }
+          #qr-print-area { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        }
+      `}</style>
     </div>
   )
 }

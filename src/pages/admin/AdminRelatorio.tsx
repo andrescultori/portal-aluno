@@ -31,7 +31,7 @@ export default function AdminRelatorio() {
   useEffect(() => {
     supabase
       .from('turmas')
-      .select('*')
+      .select('id, nome, horario_inicio, horario_fim_presente, horario_fim_atraso, ativo')
       .order('nome')
       .then(({ data }) => setTurmas((data as Turma[]) ?? []))
   }, [])
