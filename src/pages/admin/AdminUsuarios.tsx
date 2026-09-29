@@ -30,7 +30,10 @@ export default function AdminUsuarios() {
     setCarregando(true)
     const [{ data: usuariosData }, { data: turmasData }] = await Promise.all([
       supabase.from('allowed_users').select('*').order('nome'),
-      supabase.from('turmas').select('*').order('nome'),
+      supabase
+        .from('turmas')
+        .select('id, nome, horario_inicio, horario_fim_presente, horario_fim_atraso, ativo')
+        .order('nome'),
     ])
     setUsuarios((usuariosData as AllowedUser[]) ?? [])
     setTurmas((turmasData as Turma[]) ?? [])

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import type { AttendanceRecord, AttendanceStatus } from '../types/database'
@@ -8,6 +9,7 @@ interface JanelaResposta {
   turma_nome?: string
   status_atual?: AttendanceStatus | null
   ja_registrado?: boolean
+  qr_invalido?: boolean
   mensagem?: string
 }
 
@@ -25,6 +27,8 @@ const statusColor: Record<AttendanceStatus, string> = {
 
 export default function Presenca() {
   const { perfil } = useAuth()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token')
   const [consultando, setConsultando] = useState(true)
   const [confirmando, setConfirmando] = useState(false)
   const [janela, setJanela] = useState<JanelaResposta | null>(null)
@@ -72,7 +76,7 @@ export default function Presenca() {
     try {
       const { data, error } = await supabase.functions.invoke<JanelaResposta>(
         'checkin-presenca',
-        { body: { acao: 'checkin' } },
+        { body: { acao: 'checkin', token } },
       )
       if (error) throw error
       setJanela(data ?? null)
@@ -113,14 +117,26 @@ export default function Presenca() {
                   {statusLabel[janela.status_atual]}
                 </span>
               </div>
+            ) : token ? (
+              <div>
+                {janela.qr_invalido && (
+                  <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {janela.mensagem}
+                  </p>
+                )}
+                <button
+                  onClick={confirmarPresenca}
+                  disabled={confirmando}
+                  className="w-full rounded-md bg-gunmetal-gray px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark disabled:opacity-60"
+                >
+                  {confirmando ? 'Confirmando...' : 'Confirmar minha presença'}
+                </button>
+              </div>
             ) : (
-              <button
-                onClick={confirmarPresenca}
-                disabled={confirmando}
-                className="w-full rounded-md bg-gunmetal-gray px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark disabled:opacity-60"
-              >
-                {confirmando ? 'Confirmando...' : 'Confirmar minha presença'}
-              </button>
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                Para confirmar sua presença, escaneie o QR Code afixado na sala de aula da sua
+                turma.
+              </p>
             )}
           </div>
         )}

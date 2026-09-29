@@ -13,7 +13,8 @@ create table turmas (
   horario_inicio time not null,
   horario_fim_presente time not null,
   horario_fim_atraso time not null,
-  ativo boolean not null default true
+  ativo boolean not null default true,
+  qr_token text not null unique default encode(gen_random_bytes(16), 'hex')
 );
 
 create table allowed_users (
@@ -168,6 +169,8 @@ create policy "allowed_users_write_equipe"
   with check (public.current_papel() = 'equipe');
 
 -- turmas: leitura pública para autenticados; escrita só equipe.
+-- qr_token fica de fora do select('*') de qualquer sessão de usuário —
+-- só as funções get_turma_qr_token/regenerate_turma_qr_token (equipe) leem/trocam.
 create policy "turmas_select_authenticated"
   on turmas for select
   to authenticated
@@ -178,6 +181,52 @@ create policy "turmas_write_equipe"
   to authenticated
   using (public.current_papel() = 'equipe')
   with check (public.current_papel() = 'equipe');
+
+revoke select on turmas from authenticated;
+grant select (id, nome, horario_inicio, horario_fim_presente, horario_fim_atraso, ativo)
+  on turmas to authenticated;
+
+create or replace function public.get_turma_qr_token(p_turma_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token text;
+begin
+  if public.current_papel() <> 'equipe' then
+    raise exception 'not authorized';
+  end if;
+
+  select qr_token into v_token from turmas where id = p_turma_id;
+  return v_token;
+end;
+$$;
+
+create or replace function public.regenerate_turma_qr_token(p_turma_id uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_token text;
+begin
+  if public.current_papel() <> 'equipe' then
+    raise exception 'not authorized';
+  end if;
+
+  update turmas set qr_token = encode(gen_random_bytes(16), 'hex')
+  where id = p_turma_id
+  returning qr_token into v_token;
+
+  return v_token;
+end;
+$$;
+
+grant execute on function public.get_turma_qr_token(uuid) to authenticated;
+grant execute on function public.regenerate_turma_qr_token(uuid) to authenticated;
 
 -- attendance_records: aluno lê só os próprios; equipe lê tudo.
 -- Nenhuma policy de INSERT/UPDATE/DELETE para authenticated:
