@@ -115,6 +115,10 @@ create trigger on_auth_user_created
 -- 3. Helper: papel do usuário autenticado (via e-mail do JWT)
 -- ============================================================
 
+-- Comparações de e-mail normalizadas com lower() dos dois lados: contas
+-- Google costumam vir em minúsculas no JWT, mas contas Microsoft podem
+-- preservar a caixa original — sem isso, um e-mail cadastrado em
+-- minúsculas na whitelist podia não bater com o e-mail do provider.
 create or replace function public.current_papel()
 returns text
 language sql
@@ -124,7 +128,7 @@ set search_path = public
 as $$
   select papel
   from allowed_users
-  where email = auth.jwt() ->> 'email' and ativo = true
+  where lower(email) = lower(auth.jwt() ->> 'email') and ativo = true
   limit 1;
 $$;
 
@@ -137,7 +141,7 @@ set search_path = public
 as $$
   select id
   from allowed_users
-  where email = auth.jwt() ->> 'email' and ativo = true
+  where lower(email) = lower(auth.jwt() ->> 'email') and ativo = true
   limit 1;
 $$;
 
@@ -160,7 +164,7 @@ alter table settings enable row level security;
 create policy "allowed_users_select_self_or_equipe"
   on allowed_users for select
   to authenticated
-  using (email = auth.jwt() ->> 'email' or public.current_papel() = 'equipe');
+  using (lower(email) = lower(auth.jwt() ->> 'email') or public.current_papel() = 'equipe');
 
 create policy "allowed_users_write_equipe"
   on allowed_users for all

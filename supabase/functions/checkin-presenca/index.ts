@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
     const { data: aluno } = await adminClient
       .from('allowed_users')
       .select('*')
-      .eq('email', userData.user.email)
+      .eq('email', userData.user.email.toLowerCase())
       .eq('ativo', true)
       .maybeSingle<AllowedUser>()
 

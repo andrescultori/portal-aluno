@@ -3,12 +3,14 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
 import type { AllowedUser } from '../types/database'
 
+type ProviderLogin = 'google' | 'azure'
+
 interface AuthContextValue {
   session: Session | null
   perfil: AllowedUser | null
   loading: boolean
   naoAutorizado: boolean
-  signInWithGoogle: (destino?: string) => Promise<void>
+  signInWithProvider: (provider: ProviderLogin, destino?: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -30,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from('allowed_users')
       .select('*')
-      .eq('email', currentSession.user.email)
+      .eq('email', currentSession.user.email.toLowerCase())
       .eq('ativo', true)
       .maybeSingle()
 
@@ -70,9 +72,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => listener.subscription.unsubscribe()
   }, [])
 
-  async function signInWithGoogle(destino?: string) {
+  async function signInWithProvider(provider: ProviderLogin, destino?: string) {
     await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider,
       options: { redirectTo: window.location.origin + (destino ?? window.location.pathname) },
     })
   }
@@ -85,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, perfil, loading, naoAutorizado, signInWithGoogle, signOut }}
+      value={{ session, perfil, loading, naoAutorizado, signInWithProvider, signOut }}
     >
       {children}
     </AuthContext.Provider>
