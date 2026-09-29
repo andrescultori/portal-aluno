@@ -2,9 +2,10 @@ import { Navigate, useLocation, type Location } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
-  const { session, perfil, loading, naoAutorizado, signInWithGoogle } = useAuth()
+  const { session, perfil, loading, naoAutorizado, signInWithProvider } = useAuth()
   const location = useLocation()
   const from = (location.state as { from?: Location } | null)?.from
+  const destino = from ? from.pathname + from.search : undefined
 
   if (loading) return null
   if (session && perfil) return <Navigate to="/" replace />
@@ -21,12 +22,20 @@ export default function Login() {
           </p>
         )}
 
-        <button
-          onClick={() => signInWithGoogle(from ? from.pathname + from.search : undefined)}
-          className="w-full rounded-md bg-gunmetal-gray px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark"
-        >
-          Entrar com Google
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={() => signInWithProvider('google', destino)}
+            className="w-full rounded-md bg-gunmetal-gray px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark"
+          >
+            Entrar com Google
+          </button>
+          <button
+            onClick={() => signInWithProvider('azure', destino)}
+            className="w-full rounded-md border border-slate-300 px-4 py-2.5 text-sm font-bold text-gunmetal-gray transition hover:bg-slate-50"
+          >
+            Entrar com Microsoft
+          </button>
+        </div>
       </div>
     </div>
   )
