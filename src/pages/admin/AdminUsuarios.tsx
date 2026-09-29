@@ -2,12 +2,26 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import type { AllowedUser, Papel, Turma } from '../../types/database'
 
+function detectarDelimitador(linha: string): string {
+  const virgulas = (linha.match(/,/g) ?? []).length
+  const pontoEVirgulas = (linha.match(/;/g) ?? []).length
+  return pontoEVirgulas > virgulas ? ';' : ','
+}
+
+function limparCampo(campo: string): string {
+  return campo.trim().replace(/^"(.*)"$/, '$1').trim()
+}
+
 function parseCsv(texto: string): Record<string, string>[] {
-  const linhas = texto.trim().split(/\r?\n/)
+  // Excel em pt-BR exporta CSV com ; em vez de , (o padrão de fábrica do
+  // locale) e às vezes com um BOM no início do arquivo — trata os dois casos.
+  const semBom = texto.replace(/^﻿/, '')
+  const linhas = semBom.trim().split(/\r?\n/)
   if (linhas.length < 2) return []
-  const cabecalho = linhas[0].split(',').map((c) => c.trim().toLowerCase())
+  const delimitador = detectarDelimitador(linhas[0])
+  const cabecalho = linhas[0].split(delimitador).map((c) => limparCampo(c).toLowerCase())
   return linhas.slice(1).map((linha) => {
-    const valores = linha.split(',').map((v) => v.trim())
+    const valores = linha.split(delimitador).map(limparCampo)
     const registro: Record<string, string> = {}
     cabecalho.forEach((chave, i) => {
       registro[chave] = valores[i] ?? ''
@@ -136,6 +150,14 @@ export default function AdminUsuarios() {
         }
       })
 
+    if (linhas.length === 0) {
+      setMensagem(
+        'Nenhuma linha tinha um e-mail reconhecido. Confira se o cabeçalho da planilha é exatamente "nome,email,papel,turma" (com vírgula ou ponto e vírgula) e se a coluna de e-mail está preenchida.',
+      )
+      if (fileRef.current) fileRef.current.value = ''
+      return
+    }
+
     const { error } = await supabase
       .from('allowed_users')
       .upsert(linhas, { onConflict: 'email' })
@@ -159,7 +181,8 @@ export default function AdminUsuarios() {
           Colunas esperadas: <code className="rounded bg-slate-100 px-1">nome,email,papel,turma</code>
           . Papel deve ser <code className="rounded bg-slate-100 px-1">aluno</code> ou{' '}
           <code className="rounded bg-slate-100 px-1">equipe</code>. Se sua planilha estiver em
-          Excel, exporte como CSV antes de enviar.
+          Excel, exporte como CSV antes de enviar — vírgula ou ponto e vírgula como separador,
+          tanto faz.
         </p>
         <input
           ref={fileRef}
