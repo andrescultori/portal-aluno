@@ -139,7 +139,7 @@ npm run dev
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. Enable the **Google** provider under Authentication → Providers.
-3. Run the contents of [`supabase/schema.sql`](supabase/schema.sql) in the SQL Editor — creates the tables, RLS policies, and seed data — and then the security migration (see [Backend / Supabase](#backend--supabase)).
+3. Run the contents of [`supabase/schema.sql`](supabase/schema.sql) in the SQL Editor — creates the tables, RLS policies, functions and grants, already in the final security state (see [Backend / Supabase](#backend--supabase)).
 4. Manually insert the first staff user into the `allowed_users` table (a commented example is at the end of `schema.sql`).
 5. Deploy the Edge Function: `supabase functions deploy checkin-presenca`.
 
@@ -153,9 +153,10 @@ Automatic via Vercel on every push to `main` (and a preview deploy on every PR).
 
 - **Reference project:** `elurrbjflkdpjddwqomc` (`https://elurrbjflkdpjddwqomc.supabase.co`). This is what `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` point to on Vercel.
 - **`checkin-presenca` Edge Function:** deployed **manually**, not by the front-end deploy — through the dashboard (Edge Functions, pasting [`index.ts`](supabase/functions/checkin-presenca/index.ts)) or the CLI (`supabase functions deploy checkin-presenca --project-ref <ref>`). It uses **no custom secrets**, only the variables Supabase injects on its own (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). Edge Functions and secrets don't come with a `pg_dump`: when moving to a new project, redeploy it.
-- **Security migrations:** must be applied to any new project. [`20261007120000_seguranca_pos_migracao.sql`](supabase/migrations/20261007120000_seguranca_pos_migracao.sql) hides the `qr_token` column of `turmas` (no `select('*')` on `turmas` works for logged-in users — the front end reads explicit columns, and the token only comes out through the `get_turma_qr_token`/`regenerate_turma_qr_token` RPCs, restricted to staff), makes those RPCs' role check `NULL`-safe, and removes anonymous visitors' access to the helper functions `current_papel()`/`current_aluno_id()`.
-  - **Brand-new project:** `schema.sql`, then only `20261007120000_…` (`schema.sql` already includes what the `2026-09-29_*` migrations do).
-  - **Existing project that predates those features:** apply the migrations in alphabetical order (`2026-09-29_*` come before `20261007120000_…`).
+- **Security migrations:** `schema.sql` already carries the final state, so on a **brand-new project, just run it**. The migrations are for projects that were already live:
+  - [`20261007120000_seguranca_pos_migracao.sql`](supabase/migrations/20261007120000_seguranca_pos_migracao.sql) hides the `qr_token` column of `turmas` (no `select('*')` on `turmas` works for logged-in users — the front end reads explicit columns, and the token only comes out through the `get_turma_qr_token`/`regenerate_turma_qr_token` RPCs, restricted to staff), makes those RPCs' role check `NULL`-safe, and removes anonymous visitors' access to the helper functions `current_papel()`/`current_aluno_id()`.
+  - [`20261014120000_grants_funcoes_auxiliares.sql`](supabase/migrations/20261014120000_grants_funcoes_auxiliares.sql) explicitly grants `execute` on those two functions to `authenticated`/`service_role`, so they don't depend on the implicit grant to `PUBLIC` (which the previous one removes).
+  - **Existing project:** apply only the ones still missing, in alphabetical order (`2026-09-29_*` < `20261007120000_…` < `20261014120000_…`). The two most recent are idempotent.
 
 ---
 
