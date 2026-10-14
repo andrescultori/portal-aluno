@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -14,25 +13,27 @@
   --color-muted-purple: #6b6478;
   --color-chevron-gray: #9089a0;
 
-  /* Herokid Condensed ainda não foi enviada (.woff2) — Merriweather é a
-     substituta oficial pra títulos até chegar (é a fonte secundária da marca). */
-  --font-display: 'Merriweather', ui-serif, Georgia, serif;
-  --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Barlow Condensed substitui a Herokid Condensed (arquivo indisponível).
+     A família fica isolada aqui: trocar a fonte é mudar só esta linha (e o
+     <link> do Google Fonts no index.html). */
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Merriweather', ui-serif, Georgia, serif;
 
   /* Espaçamento da marca — tokens à parte (p-brand-*, gap-brand-*), não
-     substituem a escala numérica padrão do Tailwind (px-4, py-2 etc.) já
-     usada em todo o app, pra não quebrar o layout existente de uma vez. */
+     substituem a escala numérica padrão do Tailwind. */
   --spacing-brand-1: 4px;
   --spacing-brand-2: 8px;
   --spacing-brand-3: 16px;
   --spacing-brand-4: 32px;
 
-  /* Raio de borda — cards flutuantes (design system de produto), não mais
-     o Bold Editorial Grid de cantos retos do brand book institucional. */
+  /* Raios: cards e blocos são retos (rounded-none, que o Tailwind já traz);
+     campos e botões pequenos usam sm. O reset abaixo remove os raios padrão
+     do Tailwind (xl, 2xl...) pra que nenhum canto arredondado volte sem
+     querer. */
+  --radius-*: initial;
   --radius-sm: 6px;
   --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-lg: 24px;
 }
 
 html {
@@ -43,21 +44,31 @@ body {
   @apply bg-pure-white text-onyx-black antialiased font-body;
 }
 
-h1,
-h2 {
-  font-family: var(--font-display);
-  /* !important necessário: quase todo h1/h2 do app já carrega uma
-     classe Tailwind de peso (font-semibold etc.) com especificidade
-     maior que um seletor de elemento — sem isso o peso 700 nunca vence. */
-  font-weight: 700 !important;
+@layer base {
+  /* Dentro de @layer base pra que classes utilitárias (text-white em bloco
+     gunmetal, por exemplo) continuem vencendo estas regras de elemento. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--color-gunmetal-gray);
+  }
+
+  /* Foco sempre visível, em qualquer fundo. */
+  :focus-visible {
+    outline: 3px solid var(--color-mandarin-orange);
+    outline-offset: 2px;
+  }
 }
 
-/* Gradiente do header — ver DESIGN_SYSTEM.md. Scrim escuro obrigatório
-   por trás de texto branco sobre a parte laranja do gradiente. */
-.header-gradiente {
-  background:
-    linear-gradient(rgba(20, 15, 10, 0.3), rgba(20, 15, 10, 0.3)),
-    linear-gradient(135deg, var(--color-mandarin-orange) 0%, var(--color-gunmetal-gray) 100%);
+h1,
+h2,
+h3 {
+  /* !important necessário: quase todo título do app carrega uma classe
+     Tailwind de peso (font-semibold etc.) com especificidade maior que um
+     seletor de elemento — sem isso o peso 700 nunca vence. */
+  font-weight: 700 !important;
 }
 
 #root {

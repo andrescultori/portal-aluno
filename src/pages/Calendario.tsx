@@ -1,23 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy } from 'lucide-react'
-
-interface EventoCalendario {
-  id: string
-  titulo: string
-  inicio: string
-  fim?: string
-  descricao?: string
-  link?: string
-}
-
-interface ItemGoogleCalendar {
-  id: string
-  summary?: string
-  description?: string
-  htmlLink?: string
-  start: { date?: string; dateTime?: string }
-  end?: { date?: string; dateTime?: string }
-}
+import {
+  calendarApiKey as apiKey,
+  calendarId,
+  mapearEvento,
+  type EventoCalendario,
+  type ItemGoogleCalendar,
+} from '../lib/googleCalendar'
 
 const eventosMock: EventoCalendario[] = [
   { id: '1', titulo: 'Início do semestre', inicio: '2026-02-02' },
@@ -27,28 +16,15 @@ const eventosMock: EventoCalendario[] = [
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
-const apiKey = import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY
-const calendarId = import.meta.env.VITE_GOOGLE_CALENDAR_ID
 const urlCalendarioPublico = calendarId
   ? `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarId)}/public/basic.ics`
   : null
-
-function pad(n: number) {
-  return String(n).padStart(2, '0')
-}
 
 // Data em meia-noite local, ignorando qualquer horário presente na string.
 function paraDiaLocal(iso: string): Date {
   const semHora = iso.includes('T') ? iso.slice(0, 10) : iso
   const [ano, mes, dia] = semHora.split('-').map(Number)
   return new Date(ano, mes - 1, dia)
-}
-
-function diaAnterior(dataISO: string): string {
-  const [ano, mes, dia] = dataISO.split('-').map(Number)
-  const d = new Date(ano, mes - 1, dia)
-  d.setDate(d.getDate() - 1)
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 function mesmoDia(a: Date, b: Date) {
@@ -60,27 +36,6 @@ function eventoNoDia(evento: EventoCalendario, dia: Date) {
   const fim = evento.fim ? paraDiaLocal(evento.fim) : inicio
   const t = dia.getTime()
   return t >= inicio.getTime() && t <= fim.getTime()
-}
-
-function mapearEvento(item: ItemGoogleCalendar): EventoCalendario {
-  const inicio = item.start.date ?? item.start.dateTime ?? ''
-  let fim = item.end?.date ?? item.end?.dateTime
-
-  if (item.start.date && item.end?.date) {
-    // Eventos de dia inteiro: o "end.date" do Google é exclusivo (o dia
-    // seguinte ao último dia real do evento) — corrige pra inclusivo.
-    const fimCorrigido = diaAnterior(item.end.date)
-    fim = fimCorrigido === inicio ? undefined : fimCorrigido
-  }
-
-  return {
-    id: item.id,
-    titulo: item.summary ?? '(sem título)',
-    inicio,
-    fim,
-    descricao: item.description,
-    link: item.htmlLink,
-  }
 }
 
 function formatarData(data: string) {
@@ -143,7 +98,7 @@ export default function Calendario() {
         return data
       })
       .then((data) => {
-        setEventos((data.items ?? []).map(mapearEvento))
+        setEventos(((data.items ?? []) as ItemGoogleCalendar[]).map(mapearEvento))
         setUsandoMock(false)
         setErro(null)
       })
@@ -182,50 +137,50 @@ export default function Calendario() {
 
   return (
     <div className="mx-auto max-w-5xl px-brand-3 py-brand-4">
-      <h1 className="mb-2 text-2xl font-semibold text-slate-900">Calendário Acadêmico</h1>
+      <h1 className="mb-2 font-display text-[40px] leading-none text-gunmetal-gray">Calendário Acadêmico</h1>
       {erro && (
         <p className="mb-4 text-sm text-red-600">Erro ao carregar o calendário real: {erro}</p>
       )}
       {usandoMock && !erro && (!apiKey || !calendarId) && (
-        <p className="mb-4 text-sm text-amber-600">
+        <p className="mb-4 text-sm text-onyx-black">
           Exibindo dados de exemplo. Configure VITE_GOOGLE_CALENDAR_API_KEY e
           VITE_GOOGLE_CALENDAR_ID para eventos reais.
         </p>
       )}
       {usandoMock && erro && (
-        <p className="mb-4 text-sm text-amber-600">Exibindo dados de exemplo enquanto isso.</p>
+        <p className="mb-4 text-sm text-onyx-black">Exibindo dados de exemplo enquanto isso.</p>
       )}
 
       <div className="mb-4 flex items-center justify-between">
         <button
           onClick={mesAnterior}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-mandarin-orange"
+          className="rounded-sm border border-gunmetal-gray/25 px-3 py-1.5 text-sm font-medium text-onyx-black hover:border-mandarin-orange"
         >
           ← Anterior
         </button>
         <div className="text-center">
-          <p className="font-medium text-slate-900">{formatarMesAno(mesAtual)}</p>
-          <button onClick={irParaHoje} className="text-xs text-mandarin-orange hover:underline">
+          <p className="font-medium text-gunmetal-gray">{formatarMesAno(mesAtual)}</p>
+          <button onClick={irParaHoje} className="min-h-11 text-sm font-bold text-gunmetal-gray underline underline-offset-4">
             Hoje
           </button>
         </div>
         <button
           onClick={proximoMes}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-mandarin-orange"
+          className="rounded-sm border border-gunmetal-gray/25 px-3 py-1.5 text-sm font-medium text-onyx-black hover:border-mandarin-orange"
         >
           Próximo →
         </button>
       </div>
 
-      {carregando && <p className="mb-4 text-sm text-slate-400">Carregando eventos...</p>}
+      {carregando && <p className="mb-4 text-sm text-muted-purple">Carregando eventos...</p>}
 
       {/* Grade — telas médias/grandes */}
       <div className="mb-10 hidden md:block">
-        <div className="grid grid-cols-7 border-l border-t border-slate-200">
+        <div className="grid grid-cols-7 border-l border-t border-gunmetal-gray/25">
           {DIAS_SEMANA.map((dia) => (
             <div
               key={dia}
-              className="border-b border-r border-slate-200 bg-slate-50 p-2 text-center text-xs font-medium text-slate-500"
+              className="border-b border-r border-gunmetal-gray/25 bg-neutral-tint p-2 text-center text-xs font-medium text-onyx-black"
             >
               {dia}
             </div>
@@ -238,15 +193,15 @@ export default function Calendario() {
             return (
               <div
                 key={i}
-                className={`min-h-28 border-b border-r border-slate-200 p-2 ${!dia ? 'bg-slate-50' : ''}`}
+                className={`min-h-28 border-b border-r border-gunmetal-gray/25 p-2 ${!dia ? 'bg-neutral-tint' : ''}`}
               >
                 {dia && (
                   <>
                     <p
                       className={`mb-1 inline-flex h-5 w-5 items-center justify-center text-xs font-medium ${
                         mesmoDia(dia, new Date())
-                          ? 'rounded-full bg-mandarin-orange text-onyx-black'
-                          : 'text-slate-500'
+                          ? 'rounded-sm bg-mandarin-orange text-onyx-black'
+                          : 'text-onyx-black'
                       }`}
                     >
                       {dia.getDate()}
@@ -269,7 +224,7 @@ export default function Calendario() {
                           </p>
                         ),
                       )}
-                      {restantes > 0 && <p className="text-xs text-slate-400">+{restantes} mais</p>}
+                      {restantes > 0 && <p className="text-xs text-muted-purple">+{restantes} mais</p>}
                     </div>
                   </>
                 )}
@@ -282,17 +237,17 @@ export default function Calendario() {
       {/* Lista — telas pequenas */}
       <ul className="mb-10 space-y-3 md:hidden">
         {eventos.length === 0 && !carregando && (
-          <p className="text-sm text-slate-400">Nenhum evento neste mês.</p>
+          <p className="text-sm text-muted-purple">Nenhum evento neste mês.</p>
         )}
         {eventos.map((evento) => {
           const conteudo = (
             <>
-              <p className="font-medium text-slate-900">{evento.titulo}</p>
-              <p className="text-sm text-slate-500">
+              <p className="font-medium text-gunmetal-gray">{evento.titulo}</p>
+              <p className="text-sm text-onyx-black">
                 {formatarData(evento.inicio)}
                 {evento.fim && evento.fim !== evento.inicio ? ` até ${formatarData(evento.fim)}` : ''}
               </p>
-              {evento.descricao && <p className="mt-1 text-sm text-slate-600">{evento.descricao}</p>}
+              {evento.descricao && <p className="mt-1 text-sm text-onyx-black">{evento.descricao}</p>}
             </>
           )
 
@@ -303,26 +258,26 @@ export default function Calendario() {
                   href={evento.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
+                  className="block rounded-none border border-gunmetal-gray/25 bg-white p-4 transition hover:border-mandarin-orange"
                 >
                   {conteudo}
-                  <span className="mt-1 inline-block text-sm text-mandarin-orange">
+                  <span className="mt-1 inline-block text-sm font-bold text-gunmetal-gray underline underline-offset-4">
                     Ver no Google Agenda →
                   </span>
                 </a>
               ) : (
-                <div className="rounded-xl border border-slate-200 bg-white p-4">{conteudo}</div>
+                <div className="rounded-none border border-gunmetal-gray/25 bg-white p-4">{conteudo}</div>
               )}
             </li>
           )
         })}
       </ul>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
-        <h2 className="mb-2 text-lg font-medium text-slate-900">
+      <div className="rounded-none border border-gunmetal-gray/25 bg-white p-6">
+        <h2 className="mb-2 font-display text-2xl text-gunmetal-gray">
           Como adicionar este calendário no celular
         </h2>
-        <ol className="list-inside list-decimal space-y-1 text-sm text-slate-600">
+        <ol className="list-inside list-decimal space-y-1 text-sm text-onyx-black">
           <li>Abra o app Google Agenda no seu celular.</li>
           <li>Toque no ícone "+" e depois em "Usar URL".</li>
           <li>Cole o link do calendário público da UniMissional (abaixo).</li>
@@ -330,18 +285,18 @@ export default function Calendario() {
         </ol>
 
         {urlCalendarioPublico ? (
-          <div className="mt-4 flex items-center gap-2 rounded-md border border-slate-200 bg-neutral-tint px-3 py-2">
+          <div className="mt-4 flex items-center gap-2 rounded-sm border border-gunmetal-gray/25 bg-neutral-tint px-3 py-2">
             <code className="flex-1 truncate text-xs text-gunmetal-gray">{urlCalendarioPublico}</code>
             <button
               onClick={copiarUrl}
               aria-label="Copiar link do calendário"
-              className="shrink-0 rounded-md p-1.5 text-mandarin-orange hover:bg-soft-pink"
+              className="shrink-0 rounded-sm p-1.5 text-gunmetal-gray hover:bg-soft-pink"
             >
               {copiado ? <Check size={16} /> : <Copy size={16} />}
             </button>
           </div>
         ) : (
-          <p className="mt-4 text-sm text-amber-600">
+          <p className="mt-4 text-sm text-onyx-black">
             Link ainda não disponível — configure VITE_GOOGLE_CALENDAR_ID pra ele aparecer aqui.
           </p>
         )}

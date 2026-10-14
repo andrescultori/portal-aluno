@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import Header from './components/Header'
-import Footer from './components/Footer'
+import Shell from './components/Shell'
 import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -17,12 +16,12 @@ import AdminUsuarios from './pages/admin/AdminUsuarios'
 import AdminTurmas from './pages/admin/AdminTurmas'
 import AdminConteudo from './pages/admin/AdminConteudo'
 import AdminRelatorio from './pages/admin/AdminRelatorio'
+import AdminAvisos from './pages/admin/AdminAvisos'
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Header />
-      <main className="flex-1">
+      <Shell>
         <Routes>
           <Route path="/login" element={<Login />} />
 
@@ -96,12 +95,12 @@ export default function App() {
             <Route path="turmas" element={<AdminTurmas />} />
             <Route path="conteudo" element={<AdminConteudo />} />
             <Route path="relatorio" element={<AdminRelatorio />} />
+            <Route path="avisos" element={<AdminAvisos />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </main>
-      <Footer />
+      </Shell>
     </BrowserRouter>
   )
 }

@@ -23,18 +23,18 @@ export default function LinkSectionPage() {
   }, [sectionId])
 
   if (carregando) {
-    return <p className="mx-auto max-w-4xl px-brand-3 py-brand-4 text-slate-500">Carregando...</p>
+    return <p className="mx-auto max-w-4xl px-brand-3 py-brand-4 text-onyx-black">Carregando...</p>
   }
 
   if (!section) return <Navigate to="/" replace />
 
   return (
     <div className="mx-auto max-w-4xl px-brand-3 py-brand-4">
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">{section.titulo}</h1>
+      <h1 className="mb-6 font-display text-[40px] leading-none text-gunmetal-gray">{section.titulo}</h1>
 
       <div className="space-y-3">
         {items.length === 0 && (
-          <p className="text-sm text-slate-400">Nenhum link cadastrado nesta seção.</p>
+          <p className="text-sm text-muted-purple">Nenhum link cadastrado nesta seção.</p>
         )}
         {items.map((item) => (
           <a
@@ -42,10 +42,10 @@ export default function LinkSectionPage() {
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
+            className="block rounded-none border border-gunmetal-gray/25 bg-white p-4 transition hover:border-mandarin-orange"
           >
-            <p className="font-medium text-slate-900">{item.nome}</p>
-            {item.descricao && <p className="text-sm text-slate-500">{item.descricao}</p>}
+            <p className="font-medium text-gunmetal-gray">{item.nome}</p>
+            {item.descricao && <p className="text-sm text-onyx-black">{item.descricao}</p>}
           </a>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Pencil, Trash2, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import type {
@@ -21,13 +22,17 @@ const abas: { id: Aba; label: string }[] = [
 ]
 
 export default function AdminConteudo() {
-  const [aba, setAba] = useState<Aba>('hero')
+  // A aba vive na URL (?aba=) para o menu lateral do Admin poder apontar direto pra ela.
+  const [params, setParams] = useSearchParams()
+  const abaParam = params.get('aba')
+  const aba: Aba = abas.some((a) => a.id === abaParam) ? (abaParam as Aba) : 'hero'
+  const setAba = (nova: Aba) => setParams({ aba: nova })
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Conteúdo do site</h1>
+      <h1 className="mb-6 font-display text-[40px] leading-none text-gunmetal-gray">Conteúdo do site</h1>
 
-      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-slate-200">
+      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gunmetal-gray/25">
         {abas.map((a) => (
           <button
             key={a.id}
@@ -35,7 +40,7 @@ export default function AdminConteudo() {
             className={`whitespace-nowrap px-3 py-2 text-sm font-medium ${
               aba === a.id
                 ? 'border-b-2 border-mandarin-orange text-onyx-black'
-                : 'text-slate-500'
+                : 'text-onyx-black'
             }`}
           >
             {a.label}
@@ -91,16 +96,16 @@ function HeroForm() {
     setSalvo(true)
   }
 
-  if (!config) return <p className="text-slate-500">Carregando...</p>
+  if (!config) return <p className="text-onyx-black">Carregando...</p>
 
   return (
-    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-      <label className="block text-sm font-medium text-slate-700">
+    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-none border border-gunmetal-gray/25 bg-white p-5">
+      <label className="block text-sm font-medium text-onyx-black">
         Modo
         <select
           value={config.modo}
           onChange={(e) => setConfig({ ...config, modo: e.target.value as HeroConfig['modo'] })}
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
         >
           <option value="carrossel">Carrossel de imagens</option>
           <option value="video">Vídeo</option>
@@ -108,33 +113,33 @@ function HeroForm() {
       </label>
 
       {config.modo === 'video' ? (
-        <label className="block text-sm font-medium text-slate-700">
+        <label className="block text-sm font-medium text-onyx-black">
           URL do vídeo
           <input
             value={config.video_url ?? ''}
             onChange={(e) => setConfig({ ...config, video_url: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
           />
         </label>
       ) : (
         <>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-sm font-medium text-onyx-black">
             URLs das imagens (uma por linha)
             <textarea
               value={imagensTexto}
               onChange={(e) => setImagensTexto(e.target.value)}
               rows={4}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
             />
           </label>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-sm font-medium text-onyx-black">
             Intervalo entre imagens (segundos)
             <input
               type="number"
               min={2}
               value={config.intervalo_segundos}
               onChange={(e) => setConfig({ ...config, intervalo_segundos: Number(e.target.value) })}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
             />
           </label>
         </>
@@ -142,7 +147,7 @@ function HeroForm() {
 
       <FormFeedback erro={erro} salvo={salvo} />
 
-      <button type="submit" className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark">
+      <button type="submit" className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark">
         Salvar
       </button>
     </form>
@@ -176,32 +181,32 @@ function ManualForm() {
     setSalvo(true)
   }
 
-  if (!manual) return <p className="text-slate-500">Carregando...</p>
+  if (!manual) return <p className="text-onyx-black">Carregando...</p>
 
   return (
-    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-      <label className="block text-sm font-medium text-slate-700">
+    <form onSubmit={salvar} className="max-w-xl space-y-4 rounded-none border border-gunmetal-gray/25 bg-white p-5">
+      <label className="block text-sm font-medium text-onyx-black">
         URL do PDF
         <input
           value={manual.pdf_url ?? ''}
           onChange={(e) => setManual({ ...manual, pdf_url: e.target.value })}
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
           placeholder="https://.../manual.pdf"
         />
       </label>
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="block text-sm font-medium text-onyx-black">
         Resumo
         <textarea
           value={manual.resumo ?? ''}
           onChange={(e) => setManual({ ...manual, resumo: e.target.value })}
           rows={6}
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
         />
       </label>
 
       <FormFeedback erro={erro} salvo={salvo} />
 
-      <button type="submit" className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark">
+      <button type="submit" className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark">
         Salvar
       </button>
     </form>
@@ -238,15 +243,15 @@ function ClassroomForm() {
     <div className="max-w-xl space-y-4">
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       {links.map((link, i) => (
-        <div key={link.id} className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
-          <p className="text-sm font-medium text-slate-700">Turma {i + 1}</p>
+        <div key={link.id} className="rounded-none border border-gunmetal-gray/25 bg-white p-5 space-y-3">
+          <p className="text-sm font-medium text-onyx-black">Turma {i + 1}</p>
           <input
             value={link.nome_turma}
             onChange={(e) =>
               setLinks((prev) => prev.map((l) => (l.id === link.id ? { ...l, nome_turma: e.target.value } : l)))
             }
             placeholder="Nome da turma"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
           />
           <input
             value={link.url}
@@ -254,12 +259,12 @@ function ClassroomForm() {
               setLinks((prev) => prev.map((l) => (l.id === link.id ? { ...l, url: e.target.value } : l)))
             }
             placeholder="URL do Classroom"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
           />
           {salvoId === link.id && <p className="text-sm text-green-600">Salvo com sucesso.</p>}
           <button
             onClick={() => salvar(link)}
-            className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
+            className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
           >
             Salvar
           </button>
@@ -388,23 +393,23 @@ function LinksForm() {
     <div className="space-y-6">
       {erro && <p className="text-sm text-red-600">{erro}</p>}
       {sections.map((secao) => (
-        <div key={secao.id} className="rounded-xl border border-slate-200 bg-white p-5">
+        <div key={secao.id} className="rounded-none border border-gunmetal-gray/25 bg-white p-5">
           <div className="mb-1 flex flex-wrap gap-2">
             <input
               value={secao.titulo}
               onChange={(e) => renomearSecao(secao, e.target.value)}
-              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium"
+              className="min-w-0 flex-1 rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm font-medium"
             />
             <button
               onClick={() => salvarSecao(secao)}
-              className="shrink-0 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-700"
+              className="shrink-0 rounded-sm bg-neutral-tint px-3 py-2 text-sm text-onyx-black"
             >
               Salvar título
             </button>
             <button
               onClick={() => removerSecao(secao)}
               aria-label={`Excluir seção ${secao.titulo}`}
-              className="shrink-0 rounded-lg p-2 text-red-600 hover:bg-red-50"
+              className="shrink-0 rounded-sm p-2 text-red-600 hover:bg-red-50"
             >
               <Trash2 size={16} />
             </button>
@@ -418,19 +423,19 @@ function LinksForm() {
               .filter((i) => i.section_id === secao.id)
               .map((item) =>
                 itemEditando === item.id ? (
-                  <li key={item.id} className="space-y-2 rounded-lg border border-slate-200 p-2">
+                  <li key={item.id} className="space-y-2 rounded-sm border border-gunmetal-gray/25 p-2">
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <input
                         placeholder="Nome do link"
                         value={edicaoItem.nome}
                         onChange={(e) => setEdicaoItem((prev) => ({ ...prev, nome: e.target.value }))}
-                        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        className="min-w-0 flex-1 rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
                       />
                       <input
                         placeholder="URL"
                         value={edicaoItem.url}
                         onChange={(e) => setEdicaoItem((prev) => ({ ...prev, url: e.target.value }))}
-                        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        className="min-w-0 flex-1 rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
                       />
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
@@ -440,18 +445,18 @@ function LinksForm() {
                         onChange={(e) =>
                           setEdicaoItem((prev) => ({ ...prev, descricao: e.target.value }))
                         }
-                        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        className="min-w-0 flex-1 rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
                       />
                       <div className="flex shrink-0 gap-2">
                         <button
                           onClick={() => salvarEdicaoItem(item.id)}
-                          className="rounded-md bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
+                          className="rounded-sm bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
                         >
                           Salvar
                         </button>
                         <button
                           onClick={cancelarEdicaoItem}
-                          className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-700"
+                          className="rounded-sm bg-neutral-tint px-3 py-2 text-sm text-onyx-black"
                         >
                           Cancelar
                         </button>
@@ -463,21 +468,21 @@ function LinksForm() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-gunmetal-gray">{item.nome}</p>
                       {item.descricao && (
-                        <p className="truncate text-xs text-slate-400">{item.descricao}</p>
+                        <p className="truncate text-xs text-muted-purple">{item.descricao}</p>
                       )}
-                      <p className="truncate text-xs text-slate-400">{item.url}</p>
+                      <p className="truncate text-xs text-muted-purple">{item.url}</p>
                     </div>
                     <button
                       onClick={() => iniciarEdicaoItem(item)}
                       aria-label={`Editar ${item.nome}`}
-                      className="shrink-0 rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
+                      className="shrink-0 rounded-sm p-1.5 text-onyx-black hover:bg-neutral-tint"
                     >
                       <Pencil size={16} />
                     </button>
                     <button
                       onClick={() => removerItem(item.id)}
                       aria-label={`Remover ${item.nome}`}
-                      className="shrink-0 rounded-md p-1.5 text-red-600 hover:bg-red-50"
+                      className="shrink-0 rounded-sm p-1.5 text-red-600 hover:bg-red-50"
                     >
                       <X size={16} />
                     </button>
@@ -497,7 +502,7 @@ function LinksForm() {
                     [secao.id]: { nome: e.target.value, url: prev[secao.id]?.url ?? '', descricao: prev[secao.id]?.descricao ?? '' },
                   }))
                 }
-                className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="min-w-0 flex-1 rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
               />
               <input
                 placeholder="URL"
@@ -508,7 +513,7 @@ function LinksForm() {
                     [secao.id]: { nome: prev[secao.id]?.nome ?? '', url: e.target.value, descricao: prev[secao.id]?.descricao ?? '' },
                   }))
                 }
-                className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="min-w-0 flex-1 rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
               />
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -521,11 +526,11 @@ function LinksForm() {
                     [secao.id]: { nome: prev[secao.id]?.nome ?? '', url: prev[secao.id]?.url ?? '', descricao: e.target.value },
                   }))
                 }
-                className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="min-w-0 flex-1 rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
               />
               <button
                 onClick={() => adicionarItem(secao.id)}
-                className="shrink-0 rounded-md bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
+                className="shrink-0 rounded-sm bg-gunmetal-gray px-3 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
               >
                 Adicionar
               </button>
@@ -575,39 +580,39 @@ function PaginasForm() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={criar} className="max-w-xl space-y-3 rounded-xl border border-slate-200 bg-white p-5">
+      <form onSubmit={criar} className="max-w-xl space-y-3 rounded-none border border-gunmetal-gray/25 bg-white p-5">
         <input
           required
           placeholder="Título"
           value={nova.titulo}
           onChange={(e) => setNova({ ...nova, titulo: e.target.value })}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
         />
         <input
           required
           placeholder="slug (ex: sobre)"
           value={nova.slug}
           onChange={(e) => setNova({ ...nova, slug: e.target.value })}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
         />
         <textarea
           placeholder="Conteúdo"
           value={nova.conteudo}
           onChange={(e) => setNova({ ...nova, conteudo: e.target.value })}
           rows={4}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
         />
         {erro && <p className="text-sm text-red-600">{erro}</p>}
-        <button type="submit" className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark">
+        <button type="submit" className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark">
           Criar página
         </button>
       </form>
 
       <ul className="space-y-2">
         {paginas.map((p) => (
-          <li key={p.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm">
+          <li key={p.id} className="flex items-center justify-between rounded-sm border border-gunmetal-gray/25 bg-white px-4 py-2 text-sm">
             <span>
-              {p.titulo} — <span className="text-slate-400">/paginas/{p.slug}</span>
+              {p.titulo} — <span className="text-muted-purple">/paginas/{p.slug}</span>
             </span>
             <button onClick={() => remover(p.id)} className="text-red-600 hover:underline">
               remover

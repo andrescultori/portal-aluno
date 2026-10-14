@@ -90,6 +90,14 @@ create table settings (
   valor text
 );
 
+create table avisos (
+  id uuid primary key default gen_random_uuid(),
+  titulo text not null,
+  resumo text,
+  publicado_em date not null default ((now() at time zone 'America/Sao_Paulo')::date),
+  ativo boolean not null default true
+);
+
 -- ============================================================
 -- 2. Vincular auth.users -> allowed_users pelo e-mail no primeiro login
 -- ============================================================
@@ -169,6 +177,7 @@ alter table link_sections enable row level security;
 alter table link_section_items enable row level security;
 alter table info_pages enable row level security;
 alter table settings enable row level security;
+alter table avisos enable row level security;
 
 -- allowed_users: aluno vê o próprio registro; equipe vê e edita todos.
 create policy "allowed_users_select_self_or_equipe"
@@ -271,6 +280,22 @@ create policy "info_pages_write" on info_pages for all to authenticated
 create policy "settings_select" on settings for select to authenticated using (true);
 create policy "settings_write" on settings for all to authenticated
   using (public.current_papel() = 'equipe') with check (public.current_papel() = 'equipe');
+
+-- avisos: usuário logado lê só os ativos; equipe lê tudo e é a única que escreve.
+create policy "avisos_select_authenticated"
+  on avisos for select
+  to authenticated
+  using (ativo or public.current_papel() = 'equipe');
+
+create policy "avisos_write_equipe"
+  on avisos for all
+  to authenticated
+  using (public.current_papel() = 'equipe')
+  with check (public.current_papel() = 'equipe');
+
+revoke all on public.avisos from anon;
+grant select, insert, update, delete on public.avisos to authenticated;
+grant all on public.avisos to service_role;
 
 -- ============================================================
 -- 5. Dados iniciais
