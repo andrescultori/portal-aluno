@@ -199,7 +199,7 @@ export default function Calendario() {
       <div className="mb-4 flex items-center justify-between">
         <button
           onClick={mesAnterior}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-mandarin-orange"
+          className="rounded-sm border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-mandarin-orange"
         >
           ← Anterior
         </button>
@@ -211,7 +211,7 @@ export default function Calendario() {
         </div>
         <button
           onClick={proximoMes}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-mandarin-orange"
+          className="rounded-sm border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-mandarin-orange"
         >
           Próximo →
         </button>
@@ -245,7 +245,7 @@ export default function Calendario() {
                     <p
                       className={`mb-1 inline-flex h-5 w-5 items-center justify-center text-xs font-medium ${
                         mesmoDia(dia, new Date())
-                          ? 'rounded-full bg-mandarin-orange text-onyx-black'
+                          ? 'rounded-sm bg-mandarin-orange text-onyx-black'
                           : 'text-slate-500'
                       }`}
                     >
@@ -303,7 +303,7 @@ export default function Calendario() {
                   href={evento.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
+                  className="block rounded-none border border-slate-200 bg-white p-4 transition hover:border-mandarin-orange"
                 >
                   {conteudo}
                   <span className="mt-1 inline-block text-sm text-mandarin-orange">
@@ -311,14 +311,14 @@ export default function Calendario() {
                   </span>
                 </a>
               ) : (
-                <div className="rounded-xl border border-slate-200 bg-white p-4">{conteudo}</div>
+                <div className="rounded-none border border-slate-200 bg-white p-4">{conteudo}</div>
               )}
             </li>
           )
         })}
       </ul>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border border-slate-200 bg-white p-6">
         <h2 className="mb-2 text-lg font-medium text-slate-900">
           Como adicionar este calendário no celular
         </h2>
@@ -330,12 +330,12 @@ export default function Calendario() {
         </ol>
 
         {urlCalendarioPublico ? (
-          <div className="mt-4 flex items-center gap-2 rounded-md border border-slate-200 bg-neutral-tint px-3 py-2">
+          <div className="mt-4 flex items-center gap-2 rounded-sm border border-slate-200 bg-neutral-tint px-3 py-2">
             <code className="flex-1 truncate text-xs text-gunmetal-gray">{urlCalendarioPublico}</code>
             <button
               onClick={copiarUrl}
               aria-label="Copiar link do calendário"
-              className="shrink-0 rounded-md p-1.5 text-mandarin-orange hover:bg-soft-pink"
+              className="shrink-0 rounded-sm p-1.5 text-mandarin-orange hover:bg-soft-pink"
             >
               {copiado ? <Check size={16} /> : <Copy size={16} />}
             </button>

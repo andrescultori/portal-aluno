@@ -62,9 +62,9 @@ export default function Home() {
             <Link
               key={modulo.rota}
               to={modulo.rota}
-              className="flex items-center gap-3 rounded-lg bg-neutral-tint px-[15px] py-3.5 transition hover:bg-soft-pink"
+              className="flex items-center gap-3 rounded-sm bg-neutral-tint px-[15px] py-3.5 transition hover:bg-soft-pink"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-soft-pink">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-soft-pink">
                 <Icone size={20} strokeWidth={2} className="text-mandarin-orange" />
               </span>
               <span className="flex-1">

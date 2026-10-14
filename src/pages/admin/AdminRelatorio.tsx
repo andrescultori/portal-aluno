@@ -95,13 +95,13 @@ export default function AdminRelatorio() {
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Relatório de presença</h1>
 
-      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-none border border-slate-200 bg-white p-4">
         <label className="text-sm text-slate-500">
           Turma
           <select
             value={turmaId}
             onChange={(e) => setTurmaId(e.target.value)}
-            className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 block rounded-sm border border-slate-300 px-3 py-2 text-sm"
           >
             <option value="">Todas</option>
             {turmas.map((t) => (
@@ -117,7 +117,7 @@ export default function AdminRelatorio() {
             type="date"
             value={inicio}
             onChange={(e) => setInicio(e.target.value)}
-            className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 block rounded-sm border border-slate-300 px-3 py-2 text-sm"
           />
         </label>
         <label className="text-sm text-slate-500">
@@ -126,32 +126,32 @@ export default function AdminRelatorio() {
             type="date"
             value={fim}
             onChange={(e) => setFim(e.target.value)}
-            className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 block rounded-sm border border-slate-300 px-3 py-2 text-sm"
           />
         </label>
         <button
           onClick={buscar}
-          className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
+          className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
         >
           Filtrar
         </button>
         <button
           onClick={exportarCsv}
           disabled={linhas.length === 0}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 disabled:opacity-50"
+          className="rounded-sm border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 disabled:opacity-50"
         >
           Exportar CSV
         </button>
       </div>
 
       <div className="mb-4 flex gap-4 text-sm">
-        <span className="rounded-full bg-green-100 px-3 py-1 text-green-700">
+        <span className="rounded-sm bg-green-100 px-3 py-1 text-green-700">
           Presente: {contagem.presente ?? 0}
         </span>
-        <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700">
+        <span className="rounded-sm bg-amber-100 px-3 py-1 text-amber-700">
           Atraso: {contagem.atraso ?? 0}
         </span>
-        <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
+        <span className="rounded-sm bg-red-100 px-3 py-1 text-red-700">
           Falta: {contagem.falta ?? 0}
         </span>
       </div>
@@ -159,7 +159,7 @@ export default function AdminRelatorio() {
       {carregando ? (
         <p className="text-slate-500">Carregando...</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-none border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>

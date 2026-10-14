@@ -12,12 +12,12 @@ interface ItemNav {
 }
 
 const dropdownLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `block rounded-md px-3 py-2 text-sm font-medium transition ${
+  `block rounded-sm px-3 py-2 text-sm font-medium transition ${
     isActive ? 'bg-soft-pink text-onyx-black' : 'text-gunmetal-gray hover:bg-neutral-tint'
   }`
 
 const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-md px-3 py-1.5 text-sm font-medium transition ${
+  `rounded-sm px-3 py-1.5 text-sm font-medium transition ${
     isActive ? 'bg-white/20 text-white' : 'text-white/85 hover:bg-white/10 hover:text-white'
   }`
 
@@ -66,7 +66,7 @@ export default function Header() {
     <header className="header-gradiente relative px-brand-3 pb-6 pt-5 rounded-b-[36px]">
       <div className="mx-auto flex max-w-6xl items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 text-lg font-bold text-white">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-white/20 text-lg font-bold text-white">
             {iniciais(perfil.nome)}
           </div>
           <div>
@@ -74,7 +74,7 @@ export default function Header() {
               Olá, {perfil.nome.split(' ')[0]}!
             </p>
             <p className="text-[13px] text-white/90">Portal do Aluno · UniMissional</p>
-            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+            <span className="mt-2 inline-flex items-center gap-1.5 rounded-sm bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
               <User size={12} />
               {perfil.papel === 'equipe' ? 'Equipe' : 'Aluno'}
             </span>
@@ -84,7 +84,7 @@ export default function Header() {
         <button
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? 'Fechar menu' : 'Abrir menu'}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white md:hidden"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-white/20 text-white md:hidden"
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -99,7 +99,7 @@ export default function Header() {
         ))}
         <button
           onClick={signOut}
-          className="rounded-md px-3 py-1.5 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white"
+          className="rounded-sm px-3 py-1.5 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white"
         >
           Sair
         </button>
@@ -107,7 +107,7 @@ export default function Header() {
 
       {/* Menu em painel — só mobile */}
       {open && (
-        <nav className="absolute right-brand-3 top-full z-50 mt-2 w-64 rounded-xl bg-white p-2 text-left shadow-[0_14px_34px_rgba(59,50,78,0.14)] md:hidden">
+        <nav className="absolute right-brand-3 top-full z-50 mt-2 w-64 rounded-none bg-white p-2 text-left shadow-[0_14px_34px_rgba(59,50,78,0.14)] md:hidden">
           {itens.map((item) => (
             <NavLink
               key={item.to}
@@ -121,7 +121,7 @@ export default function Header() {
           ))}
           <button
             onClick={signOut}
-            className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-neutral-tint"
+            className="block w-full rounded-sm px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-neutral-tint"
           >
             Sair
           </button>

@@ -92,7 +92,7 @@ export default function Presenca() {
     <div className="mx-auto max-w-2xl px-brand-3 py-brand-4">
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Registro de Presença</h1>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="rounded-none border border-slate-200 bg-white p-6">
         {consultando && <p className="text-slate-500">Verificando janela de presença...</p>}
 
         {!consultando && erro && <p className="text-sm text-red-600">{erro}</p>}
@@ -112,7 +112,7 @@ export default function Presenca() {
               <div>
                 <p className="mb-2 text-sm text-slate-500">Sua presença hoje já foi registrada:</p>
                 <span
-                  className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${statusColor[janela.status_atual]}`}
+                  className={`inline-block rounded-sm px-3 py-1 text-sm font-medium ${statusColor[janela.status_atual]}`}
                 >
                   {statusLabel[janela.status_atual]}
                 </span>
@@ -120,20 +120,20 @@ export default function Presenca() {
             ) : token ? (
               <div>
                 {janela.qr_invalido && (
-                  <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  <p className="mb-3 rounded-sm bg-red-50 px-3 py-2 text-sm text-red-700">
                     {janela.mensagem}
                   </p>
                 )}
                 <button
                   onClick={confirmarPresenca}
                   disabled={confirmando}
-                  className="w-full rounded-md bg-gunmetal-gray px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark disabled:opacity-60"
+                  className="w-full rounded-sm bg-gunmetal-gray px-4 py-2.5 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark disabled:opacity-60"
                 >
                   {confirmando ? 'Confirmando...' : 'Confirmar minha presença'}
                 </button>
               </div>
             ) : (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              <p className="rounded-sm bg-amber-50 px-3 py-2 text-sm text-amber-700">
                 Para confirmar sua presença, escaneie o QR Code afixado na sala de aula da sua
                 turma.
               </p>
@@ -150,13 +150,13 @@ export default function Presenca() {
         {historico.map((registro) => (
           <div
             key={registro.id}
-            className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-2.5"
+            className="flex items-center justify-between rounded-sm border border-slate-200 bg-white px-4 py-2.5"
           >
             <span className="text-sm text-slate-700">
               {new Date(registro.data + 'T00:00:00').toLocaleDateString('pt-BR')}
             </span>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-medium ${statusColor[registro.status]}`}
+              className={`rounded-sm px-3 py-1 text-xs font-medium ${statusColor[registro.status]}`}
             >
               {statusLabel[registro.status]}
             </span>

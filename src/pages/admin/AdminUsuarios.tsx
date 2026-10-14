@@ -175,7 +175,7 @@ export default function AdminUsuarios() {
     <div>
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Usuários autorizados</h1>
 
-      <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5">
+      <div className="mb-6 rounded-none border border-slate-200 bg-white p-5">
         <h2 className="mb-2 font-medium text-slate-900">Importar whitelist (CSV)</h2>
         <p className="mb-3 text-sm text-slate-500">
           Colunas esperadas: <code className="rounded bg-slate-100 px-1">nome,email,papel,turma</code>
@@ -189,21 +189,21 @@ export default function AdminUsuarios() {
           type="file"
           accept=".csv"
           onChange={importarArquivo}
-          className="block w-full max-w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-neutral-tint file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gunmetal-gray"
+          className="block w-full max-w-full text-sm file:mr-3 file:rounded-sm file:border-0 file:bg-neutral-tint file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gunmetal-gray"
         />
         {mensagem && <p className="mt-3 text-sm text-slate-700">{mensagem}</p>}
       </div>
 
       <form
         onSubmit={adicionarUsuario}
-        className="mb-6 grid gap-3 rounded-xl border border-slate-200 bg-white p-5 md:grid-cols-4"
+        className="mb-6 grid gap-3 rounded-none border border-slate-200 bg-white p-5 md:grid-cols-4"
       >
         <input
           required
           placeholder="Nome"
           value={novo.nome}
           onChange={(e) => setNovo({ ...novo, nome: e.target.value })}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-sm border border-slate-300 px-3 py-2 text-sm"
         />
         <input
           required
@@ -211,12 +211,12 @@ export default function AdminUsuarios() {
           placeholder="E-mail"
           value={novo.email}
           onChange={(e) => setNovo({ ...novo, email: e.target.value })}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-sm border border-slate-300 px-3 py-2 text-sm"
         />
         <select
           value={novo.papel}
           onChange={(e) => setNovo({ ...novo, papel: e.target.value as Papel })}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-sm border border-slate-300 px-3 py-2 text-sm"
         >
           <option value="aluno">Aluno</option>
           <option value="equipe">Equipe</option>
@@ -224,7 +224,7 @@ export default function AdminUsuarios() {
         <select
           value={novo.turma_id}
           onChange={(e) => setNovo({ ...novo, turma_id: e.target.value })}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          className="rounded-sm border border-slate-300 px-3 py-2 text-sm"
         >
           <option value="">Sem turma</option>
           {turmas.map((t) => (
@@ -235,7 +235,7 @@ export default function AdminUsuarios() {
         </select>
         <button
           type="submit"
-          className="rounded-md bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark md:col-span-4"
+          className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark md:col-span-4"
         >
           Adicionar usuário
         </button>
@@ -244,7 +244,7 @@ export default function AdminUsuarios() {
       {carregando ? (
         <p className="text-slate-500">Carregando...</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-none border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
               <tr>
@@ -264,7 +264,7 @@ export default function AdminUsuarios() {
                       <input
                         value={edicao.nome}
                         onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })}
-                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                        className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm"
                       />
                     </td>
                     <td className="px-4 py-2">
@@ -272,14 +272,14 @@ export default function AdminUsuarios() {
                         type="email"
                         value={edicao.email}
                         onChange={(e) => setEdicao({ ...edicao, email: e.target.value })}
-                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                        className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm"
                       />
                     </td>
                     <td className="px-4 py-2">
                       <select
                         value={edicao.papel}
                         onChange={(e) => setEdicao({ ...edicao, papel: e.target.value as Papel })}
-                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                        className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm"
                       >
                         <option value="aluno">Aluno</option>
                         <option value="equipe">Equipe</option>
@@ -289,7 +289,7 @@ export default function AdminUsuarios() {
                       <select
                         value={edicao.turma_id}
                         onChange={(e) => setEdicao({ ...edicao, turma_id: e.target.value })}
-                        className="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm"
+                        className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm"
                       >
                         <option value="">Sem turma</option>
                         {turmas.map((t) => (
@@ -302,7 +302,7 @@ export default function AdminUsuarios() {
                     <td className="px-4 py-2">
                       <button
                         onClick={() => alternarAtivo(u)}
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
                           u.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
                         }`}
                       >
@@ -337,7 +337,7 @@ export default function AdminUsuarios() {
                     <td className="px-4 py-2">
                       <button
                         onClick={() => alternarAtivo(u)}
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
                           u.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
                         }`}
                       >
