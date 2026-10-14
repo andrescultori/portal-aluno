@@ -14,7 +14,7 @@ export default function ProtectedRoute({
   const location = useLocation()
 
   if (loading) {
-    return <div className="flex flex-1 items-center justify-center text-slate-400">Carregando...</div>
+    return <div className="flex flex-1 items-center justify-center text-muted-purple">Carregando...</div>
   }
 
   if (!session || !perfil) {

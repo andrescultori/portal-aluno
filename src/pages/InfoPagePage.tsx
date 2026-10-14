@@ -23,15 +23,15 @@ export default function InfoPagePage() {
   }, [slug])
 
   if (carregando) {
-    return <p className="mx-auto max-w-3xl px-brand-3 py-brand-4 text-slate-500">Carregando...</p>
+    return <p className="mx-auto max-w-3xl px-brand-3 py-brand-4 text-onyx-black">Carregando...</p>
   }
 
   if (!page) return <Navigate to="/" replace />
 
   return (
     <div className="mx-auto max-w-3xl px-brand-3 py-brand-4">
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">{page.titulo}</h1>
-      <div className="whitespace-pre-line text-slate-700">{page.conteudo}</div>
+      <h1 className="mb-6 font-display text-[40px] leading-none text-gunmetal-gray">{page.titulo}</h1>
+      <div className="whitespace-pre-line text-onyx-black">{page.conteudo}</div>
     </div>
   )
 }

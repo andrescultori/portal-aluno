@@ -20,15 +20,15 @@ export default function ManualDoAluno() {
 
   return (
     <div className="mx-auto max-w-4xl px-brand-3 py-brand-4">
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Manual do Aluno</h1>
+      <h1 className="mb-6 font-display text-[40px] leading-none text-gunmetal-gray">Manual do Aluno</h1>
 
       {carregando ? (
-        <p className="text-slate-500">Carregando...</p>
+        <p className="text-onyx-black">Carregando...</p>
       ) : (
         <div className="grid gap-8 md:grid-cols-2">
-          <div className="rounded-none border border-slate-200 bg-white p-6">
-            <h2 className="mb-2 text-lg font-medium text-slate-900">Baixar PDF completo</h2>
-            <p className="mb-4 text-sm text-slate-500">
+          <div className="rounded-none border border-gunmetal-gray/25 bg-white p-6">
+            <h2 className="mb-2 font-display text-2xl text-gunmetal-gray">Baixar PDF completo</h2>
+            <p className="mb-4 text-sm text-onyx-black">
               Documento oficial com todas as normas acadêmicas e disciplinares.
             </p>
             {manual?.pdf_url ? (
@@ -41,13 +41,13 @@ export default function ManualDoAluno() {
                 Download do Manual (PDF)
               </a>
             ) : (
-              <p className="text-sm text-slate-400">PDF ainda não configurado pela equipe.</p>
+              <p className="text-sm text-muted-purple">PDF ainda não configurado pela equipe.</p>
             )}
           </div>
 
-          <div className="rounded-none border border-slate-200 bg-white p-6">
-            <h2 className="mb-2 text-lg font-medium text-slate-900">Resumo</h2>
-            <p className="whitespace-pre-line text-sm text-slate-600">
+          <div className="rounded-none border border-gunmetal-gray/25 bg-white p-6">
+            <h2 className="mb-2 font-display text-2xl text-gunmetal-gray">Resumo</h2>
+            <p className="whitespace-pre-line text-sm text-onyx-black">
               {manual?.resumo ?? 'Resumo ainda não configurado.'}
             </p>
           </div>

@@ -115,44 +115,44 @@ export default function AdminTurmas() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Turmas</h1>
+      <h1 className="mb-6 font-display text-[40px] leading-none text-gunmetal-gray">Turmas</h1>
 
       <form
         onSubmit={criar}
-        className="mb-6 grid gap-3 rounded-none border border-slate-200 bg-white p-5 md:grid-cols-5"
+        className="mb-6 grid gap-3 rounded-none border border-gunmetal-gray/25 bg-white p-5 md:grid-cols-5"
       >
         <input
           required
           placeholder="Nome da turma"
           value={form.nome}
           onChange={(e) => setForm({ ...form, nome: e.target.value })}
-          className="rounded-sm border border-slate-300 px-3 py-2 text-sm md:col-span-2"
+          className="rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm md:col-span-2"
         />
-        <label className="text-sm text-slate-500">
+        <label className="text-sm text-onyx-black">
           Início
           <input
             type="time"
             value={form.horario_inicio}
             onChange={(e) => setForm({ ...form, horario_inicio: e.target.value })}
-            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
           />
         </label>
-        <label className="text-sm text-slate-500">
+        <label className="text-sm text-onyx-black">
           Fim (presente)
           <input
             type="time"
             value={form.horario_fim_presente}
             onChange={(e) => setForm({ ...form, horario_fim_presente: e.target.value })}
-            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
           />
         </label>
-        <label className="text-sm text-slate-500">
+        <label className="text-sm text-onyx-black">
           Fim (atraso)
           <input
             type="time"
             value={form.horario_fim_atraso}
             onChange={(e) => setForm({ ...form, horario_fim_atraso: e.target.value })}
-            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
           />
         </label>
         <button
@@ -164,11 +164,11 @@ export default function AdminTurmas() {
       </form>
 
       {carregando ? (
-        <p className="text-slate-500">Carregando...</p>
+        <p className="text-onyx-black">Carregando...</p>
       ) : (
-        <div className="overflow-x-auto rounded-none border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-none border border-gunmetal-gray/25 bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500">
+            <thead className="bg-neutral-tint text-onyx-black">
               <tr>
                 <th className="px-4 py-2">Nome</th>
                 <th className="px-4 py-2">Início</th>
@@ -181,12 +181,12 @@ export default function AdminTurmas() {
             <tbody>
               {turmas.map((t) =>
                 editandoId === t.id ? (
-                  <tr key={t.id} className="border-t border-slate-100">
+                  <tr key={t.id} className="border-t border-gunmetal-gray/25">
                     <td className="px-4 py-2">
                       <input
                         value={edicao.nome}
                         onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })}
-                        className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm"
+                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
                       />
                     </td>
                     <td className="px-4 py-2">
@@ -194,7 +194,7 @@ export default function AdminTurmas() {
                         type="time"
                         value={edicao.horario_inicio}
                         onChange={(e) => setEdicao({ ...edicao, horario_inicio: e.target.value })}
-                        className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm"
+                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
                       />
                     </td>
                     <td className="px-4 py-2">
@@ -204,7 +204,7 @@ export default function AdminTurmas() {
                         onChange={(e) =>
                           setEdicao({ ...edicao, horario_fim_presente: e.target.value })
                         }
-                        className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm"
+                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
                       />
                     </td>
                     <td className="px-4 py-2">
@@ -214,14 +214,14 @@ export default function AdminTurmas() {
                         onChange={(e) =>
                           setEdicao({ ...edicao, horario_fim_atraso: e.target.value })
                         }
-                        className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm"
+                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
                       />
                     </td>
                     <td className="px-4 py-2">
                       <button
                         onClick={() => alternarAtivo(t)}
                         className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
-                          t.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                          t.ativo ? 'bg-green-100 text-green-700' : 'bg-neutral-tint text-onyx-black'
                         }`}
                       >
                         {t.ativo ? 'Ativa' : 'Inativa'}
@@ -237,7 +237,7 @@ export default function AdminTurmas() {
                         </button>
                         <button
                           onClick={cancelarEdicao}
-                          className="text-xs font-medium text-slate-500 hover:underline"
+                          className="text-xs font-medium text-onyx-black hover:underline"
                         >
                           Cancelar
                         </button>
@@ -245,7 +245,7 @@ export default function AdminTurmas() {
                     </td>
                   </tr>
                 ) : (
-                  <tr key={t.id} className="border-t border-slate-100">
+                  <tr key={t.id} className="border-t border-gunmetal-gray/25">
                     <td className="px-4 py-2">{t.nome}</td>
                     <td className="px-4 py-2">{t.horario_inicio}</td>
                     <td className="px-4 py-2">{t.horario_fim_presente}</td>
@@ -254,7 +254,7 @@ export default function AdminTurmas() {
                       <button
                         onClick={() => alternarAtivo(t)}
                         className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
-                          t.ativo ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                          t.ativo ? 'bg-green-100 text-green-700' : 'bg-neutral-tint text-onyx-black'
                         }`}
                       >
                         {t.ativo ? 'Ativa' : 'Inativa'}
@@ -264,13 +264,13 @@ export default function AdminTurmas() {
                       <div className="flex justify-end gap-3">
                         <button
                           onClick={() => abrirQrCode(t)}
-                          className="text-xs font-medium text-slate-600 hover:underline"
+                          className="text-xs font-medium text-onyx-black hover:underline"
                         >
                           QR Code
                         </button>
                         <button
                           onClick={() => iniciarEdicao(t)}
-                          className="text-xs font-medium text-slate-600 hover:underline"
+                          className="text-xs font-medium text-onyx-black hover:underline"
                         >
                           Editar
                         </button>
@@ -291,18 +291,18 @@ export default function AdminTurmas() {
       )}
 
       {qrTurma && (
-        <div className="mt-6 rounded-none border border-slate-200 bg-white p-6">
+        <div className="mt-6 rounded-none border border-gunmetal-gray/25 bg-white p-6">
           <div className="mb-4 flex items-start justify-between">
             <div>
-              <h2 className="font-medium text-slate-900">QR Code — {qrTurma.nome}</h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <h2 className="font-medium text-gunmetal-gray">QR Code — {qrTurma.nome}</h2>
+              <p className="mt-1 text-sm text-onyx-black">
                 Imprima e afixe na sala. Quem escanear precisa estar logado no portal — a
                 presença só é confirmada se o QR bater com a turma do aluno.
               </p>
             </div>
             <button
               onClick={fecharQrCode}
-              className="shrink-0 text-xs font-medium text-slate-500 hover:underline"
+              className="shrink-0 text-xs font-medium text-onyx-black hover:underline"
             >
               Fechar
             </button>
@@ -311,7 +311,7 @@ export default function AdminTurmas() {
           {qrErro && <p className="mb-3 text-sm text-red-600">{qrErro}</p>}
 
           {qrCarregando && !qrToken ? (
-            <p className="text-sm text-slate-500">Carregando...</p>
+            <p className="text-sm text-onyx-black">Carregando...</p>
           ) : (
             qrToken && (
               <div>
@@ -320,7 +320,7 @@ export default function AdminTurmas() {
                     value={`${window.location.origin}/presenca?token=${qrToken}`}
                     size={220}
                   />
-                  <p className="text-center font-medium text-slate-900">{qrTurma.nome}</p>
+                  <p className="text-center font-medium text-gunmetal-gray">{qrTurma.nome}</p>
                 </div>
 
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
@@ -333,7 +333,7 @@ export default function AdminTurmas() {
                   <button
                     onClick={regenerarQrCode}
                     disabled={qrCarregando}
-                    className="rounded-sm bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-60"
+                    className="rounded-sm bg-neutral-tint px-4 py-2 text-sm font-medium text-onyx-black hover:bg-soft-pink disabled:opacity-60"
                   >
                     Gerar novo QR Code
                   </button>
