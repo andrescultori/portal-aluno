@@ -92,12 +92,12 @@ function Hero({ nome, hero }: { nome: string; hero: HeroConfig | null }) {
   const primeiroNome = nome.trim().split(/\s+/)[0]
 
   return (
-    <section className="grid lg:grid-cols-2">
-      <div className="bg-soft-pink px-4 py-10 sm:px-8 lg:px-12 lg:py-16">
+    <section className="grid grid-cols-1 lg:grid-cols-2">
+      <div className="min-w-0 bg-soft-pink px-4 py-10 sm:px-8 lg:px-12 lg:py-16">
         <p className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">
           Portal do Aluno
         </p>
-        <h1 className="mt-3 font-display text-[44px] leading-[1.02] text-gunmetal-gray sm:text-6xl lg:text-[72px]">
+        <h1 className="mt-3 break-words font-display text-[44px] leading-[1.02] text-gunmetal-gray sm:text-6xl lg:text-[72px]">
           Olá, {primeiroNome}. Universidade e missão, juntas.
         </h1>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-onyx-black">
@@ -132,7 +132,7 @@ function CardPresenca({ perfil }: { perfil: NonNullable<ReturnType<typeof useAut
   const { carregando, turma, registro } = usePresencaHoje(perfil)
 
   return (
-    <article className="flex flex-col bg-gunmetal-gray p-6 text-white">
+    <article className="flex min-w-0 flex-col bg-gunmetal-gray p-6 text-white">
       <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-soft-pink">
         Presença de hoje
       </h2>
@@ -193,7 +193,7 @@ function CardEventos() {
   }, [])
 
   return (
-    <article className="flex flex-col border border-gunmetal-gray/25 bg-pure-white p-6">
+    <article className="flex min-w-0 flex-col border border-gunmetal-gray/25 bg-pure-white p-6">
       <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">
         Próximos eventos
       </h2>
@@ -220,8 +220,8 @@ function CardEventos() {
                   <span className="font-display text-2xl font-bold leading-none">{dia}</span>
                   <span className="text-[11px] font-bold leading-tight">{mes}</span>
                 </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[15px] font-bold text-gunmetal-gray">
+                <span className="min-w-0 flex-1">
+                  <span className="block break-words text-[15px] font-bold text-gunmetal-gray">
                     {ev.titulo}
                   </span>
                   <span className="block text-sm text-onyx-black">
@@ -260,7 +260,7 @@ function CardAvisos() {
   }, [])
 
   return (
-    <article className="flex flex-col bg-soft-pink p-6">
+    <article className="flex min-w-0 flex-col bg-soft-pink p-6">
       <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">
         Avisos e comunicados
       </h2>
@@ -276,8 +276,10 @@ function CardAvisos() {
               <p className="text-xs font-bold uppercase tracking-wide text-gunmetal-gray">
                 {dataAviso(a.publicado_em)}
               </p>
-              <p className="mt-1 text-[15px] font-bold text-gunmetal-gray">{a.titulo}</p>
-              {a.resumo && <p className="mt-1 text-sm leading-relaxed text-onyx-black">{a.resumo}</p>}
+              <p className="mt-1 break-words text-[15px] font-bold text-gunmetal-gray">{a.titulo}</p>
+              {a.resumo && (
+                <p className="mt-1 break-words text-sm leading-relaxed text-onyx-black">{a.resumo}</p>
+              )}
             </li>
           ))}
         </ul>
@@ -303,9 +305,9 @@ function FaixaManual() {
   return (
     <section className="border-t-4 border-gunmetal-gray bg-pure-white py-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 md:flex-row md:items-center md:justify-between">
-        <div className="max-w-3xl">
+        <div className="min-w-0 max-w-3xl">
           <h2 className="font-display text-4xl text-gunmetal-gray">Manual do Aluno</h2>
-          <p className="mt-2 text-base leading-relaxed text-onyx-black">
+          <p className="mt-2 break-words text-base leading-relaxed text-onyx-black">
             {manual?.resumo ??
               'Normas, calendário e orientações para o seu semestre na UniMissional.'}
           </p>
@@ -350,14 +352,14 @@ function AcessoRapido() {
   }, [])
 
   const cartao =
-    'flex min-h-20 flex-col justify-center border border-gunmetal-gray/25 bg-pure-white p-4 transition hover:border-mandarin-orange hover:bg-soft-pink/40'
+    'flex min-h-20 min-w-0 break-words flex-col justify-center border border-gunmetal-gray/25 bg-pure-white p-4 transition hover:border-mandarin-orange hover:bg-soft-pink/40'
 
   if (classroom.length === 0 && secoes.length === 0) return null
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-10">
       <h2 className="font-display text-4xl text-gunmetal-gray">Acesso rápido</h2>
-      <div className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
+      <div className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))]">
         {classroom.map((c) => (
           <a key={c.id} href={c.url} target="_blank" rel="noopener noreferrer" className={cartao}>
             <span className="text-base font-bold text-gunmetal-gray">{c.nome_turma}</span>
@@ -396,7 +398,7 @@ export default function Home() {
     <div>
       <Hero nome={perfil.nome} hero={hero} />
 
-      <section className="mx-auto grid w-full max-w-7xl gap-4 px-4 py-10 lg:grid-cols-3">
+      <section className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 px-4 py-10 lg:grid-cols-3">
         <CardPresenca perfil={perfil} />
         <CardEventos />
         <CardAvisos />

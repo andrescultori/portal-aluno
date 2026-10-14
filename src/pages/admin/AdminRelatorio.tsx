@@ -36,7 +36,7 @@ function celulaCsv(valor: string) {
 }
 
 const campo =
-  'mt-1 block min-h-11 w-full rounded-sm border border-gunmetal-gray/40 bg-pure-white px-3 text-sm text-onyx-black'
+  'mt-1 block min-h-11 w-full min-w-0 max-w-full rounded-sm border border-gunmetal-gray/40 bg-pure-white px-2 text-sm font-normal text-onyx-black'
 
 export default function AdminRelatorio() {
   const [turmas, setTurmas] = useState<Turma[]>([])
@@ -156,9 +156,9 @@ export default function AdminRelatorio() {
           e.preventDefault()
           buscar()
         }}
-        className="mt-6 grid gap-3 border border-gunmetal-gray/25 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_1.2fr_auto] lg:items-end"
+        className="mt-6 grid grid-cols-2 gap-3 border border-gunmetal-gray/25 p-4 lg:grid-cols-[1fr_9.5rem_9.5rem_1.2fr_auto] lg:items-end"
       >
-        <label className="text-sm font-bold text-gunmetal-gray">
+        <label className="col-span-2 min-w-0 text-sm font-bold text-gunmetal-gray lg:col-span-1">
           Turma
           <select value={turmaId} onChange={(e) => setTurmaId(e.target.value)} className={campo}>
             <option value="">Todas</option>
@@ -169,15 +169,15 @@ export default function AdminRelatorio() {
             ))}
           </select>
         </label>
-        <label className="text-sm font-bold text-gunmetal-gray">
+        <label className="min-w-0 text-sm font-bold text-gunmetal-gray">
           De
           <input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} className={campo} />
         </label>
-        <label className="text-sm font-bold text-gunmetal-gray">
+        <label className="min-w-0 text-sm font-bold text-gunmetal-gray">
           Até
           <input type="date" value={fim} onChange={(e) => setFim(e.target.value)} className={campo} />
         </label>
-        <label className="text-sm font-bold text-gunmetal-gray">
+        <label className="col-span-2 min-w-0 text-sm font-bold text-gunmetal-gray lg:col-span-1">
           Buscar aluno
           <input
             type="search"
@@ -189,7 +189,7 @@ export default function AdminRelatorio() {
         </label>
         <button
           type="submit"
-          className="min-h-11 rounded-sm bg-gunmetal-gray px-6 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark sm:col-span-2 lg:col-span-1"
+          className="min-h-11 rounded-sm bg-gunmetal-gray px-6 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark col-span-2 lg:col-span-1"
         >
           Filtrar
         </button>

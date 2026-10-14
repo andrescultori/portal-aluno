@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../../lib/supabaseClient'
+import { hhmm } from '../../lib/datas'
 import type { Turma } from '../../types/database'
+
+const campoHora =
+  'mt-1 block min-h-11 w-full min-w-0 rounded-sm border border-gunmetal-gray/25 bg-pure-white px-2 text-sm font-normal text-onyx-black'
 
 const vazio = {
   nome: '',
@@ -119,45 +123,46 @@ export default function AdminTurmas() {
 
       <form
         onSubmit={criar}
-        className="mb-6 grid gap-3 rounded-none border border-gunmetal-gray/25 bg-white p-5 md:grid-cols-5"
+        className="mb-6 grid grid-cols-3 gap-3 rounded-none border border-gunmetal-gray/25 bg-white p-4 md:grid-cols-5 md:p-5"
       >
         <input
           required
           placeholder="Nome da turma"
+          aria-label="Nome da turma"
           value={form.nome}
           onChange={(e) => setForm({ ...form, nome: e.target.value })}
-          className="rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm md:col-span-2"
+          className="col-span-3 min-h-11 min-w-0 rounded-sm border border-gunmetal-gray/25 px-3 text-sm md:col-span-2"
         />
-        <label className="text-sm text-onyx-black">
+        <label className="min-w-0 text-sm font-bold text-gunmetal-gray">
           Início
           <input
             type="time"
             value={form.horario_inicio}
             onChange={(e) => setForm({ ...form, horario_inicio: e.target.value })}
-            className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
+            className={campoHora}
           />
         </label>
-        <label className="text-sm text-onyx-black">
-          Fim (presente)
+        <label className="min-w-0 text-sm font-bold text-gunmetal-gray">
+          Presente até
           <input
             type="time"
             value={form.horario_fim_presente}
             onChange={(e) => setForm({ ...form, horario_fim_presente: e.target.value })}
-            className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
+            className={campoHora}
           />
         </label>
-        <label className="text-sm text-onyx-black">
-          Fim (atraso)
+        <label className="min-w-0 text-sm font-bold text-gunmetal-gray">
+          Atraso até
           <input
             type="time"
             value={form.horario_fim_atraso}
             onChange={(e) => setForm({ ...form, horario_fim_atraso: e.target.value })}
-            className="mt-1 w-full rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
+            className={campoHora}
           />
         </label>
         <button
           type="submit"
-          className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark md:col-span-5"
+          className="col-span-3 min-h-11 rounded-sm bg-gunmetal-gray px-4 text-sm font-bold text-white hover:bg-gunmetal-gray-dark md:col-span-5"
         >
           Criar turma
         </button>
@@ -166,7 +171,7 @@ export default function AdminTurmas() {
       {carregando ? (
         <p className="text-onyx-black">Carregando...</p>
       ) : (
-        <div className="overflow-x-auto rounded-none border border-gunmetal-gray/25 bg-white">
+        <div className="hidden overflow-x-auto rounded-none border border-gunmetal-gray/25 bg-white md:block">
           <table className="w-full text-left text-sm">
             <thead className="bg-neutral-tint text-onyx-black">
               <tr>
@@ -247,9 +252,9 @@ export default function AdminTurmas() {
                 ) : (
                   <tr key={t.id} className="border-t border-gunmetal-gray/25">
                     <td className="px-4 py-2">{t.nome}</td>
-                    <td className="px-4 py-2">{t.horario_inicio}</td>
-                    <td className="px-4 py-2">{t.horario_fim_presente}</td>
-                    <td className="px-4 py-2">{t.horario_fim_atraso}</td>
+                    <td className="px-4 py-2">{hhmm(t.horario_inicio)}</td>
+                    <td className="px-4 py-2">{hhmm(t.horario_fim_presente)}</td>
+                    <td className="px-4 py-2">{hhmm(t.horario_fim_atraso)}</td>
                     <td className="px-4 py-2">
                       <button
                         onClick={() => alternarAtivo(t)}
@@ -288,6 +293,119 @@ export default function AdminTurmas() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Celular: um cartão por turma */}
+      {!carregando && (
+        <ul className="space-y-3 md:hidden">
+          {turmas.map((t) => (
+            <li key={t.id} className="border border-gunmetal-gray/25 bg-white p-4">
+              {editandoId === t.id ? (
+                <div className="grid grid-cols-3 gap-3">
+                  <input
+                    aria-label="Nome da turma"
+                    value={edicao.nome}
+                    onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })}
+                    className="col-span-3 min-h-11 min-w-0 rounded-sm border border-gunmetal-gray/25 px-3 text-sm"
+                  />
+                  <label className="min-w-0 text-xs font-bold text-gunmetal-gray">
+                    Início
+                    <input
+                      type="time"
+                      value={edicao.horario_inicio}
+                      onChange={(e) => setEdicao({ ...edicao, horario_inicio: e.target.value })}
+                      className={campoHora}
+                    />
+                  </label>
+                  <label className="min-w-0 text-xs font-bold text-gunmetal-gray">
+                    Presente até
+                    <input
+                      type="time"
+                      value={edicao.horario_fim_presente}
+                      onChange={(e) =>
+                        setEdicao({ ...edicao, horario_fim_presente: e.target.value })
+                      }
+                      className={campoHora}
+                    />
+                  </label>
+                  <label className="min-w-0 text-xs font-bold text-gunmetal-gray">
+                    Atraso até
+                    <input
+                      type="time"
+                      value={edicao.horario_fim_atraso}
+                      onChange={(e) =>
+                        setEdicao({ ...edicao, horario_fim_atraso: e.target.value })
+                      }
+                      className={campoHora}
+                    />
+                  </label>
+                  <div className="col-span-3 flex gap-2">
+                    <button
+                      onClick={() => salvarEdicao(t.id)}
+                      className="min-h-11 flex-1 rounded-sm bg-gunmetal-gray text-sm font-bold text-white"
+                    >
+                      Salvar
+                    </button>
+                    <button
+                      onClick={cancelarEdicao}
+                      className="min-h-11 flex-1 rounded-sm border-2 border-gunmetal-gray text-sm font-bold text-gunmetal-gray"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 break-words font-bold text-gunmetal-gray">{t.nome}</p>
+                    <button
+                      onClick={() => alternarAtivo(t)}
+                      className={`shrink-0 rounded-sm px-2 py-0.5 text-xs font-bold ${
+                        t.ativo ? 'bg-gunmetal-gray text-white' : 'bg-neutral-tint text-onyx-black'
+                      }`}
+                    >
+                      {t.ativo ? 'Ativa' : 'Inativa'}
+                    </button>
+                  </div>
+                  <dl className="mt-3 grid grid-cols-3 gap-2 text-sm text-onyx-black">
+                    <div>
+                      <dt className="text-xs font-bold text-gunmetal-gray">Início</dt>
+                      <dd>{hhmm(t.horario_inicio)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-bold text-gunmetal-gray">Presente até</dt>
+                      <dd>{hhmm(t.horario_fim_presente)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs font-bold text-gunmetal-gray">Atraso até</dt>
+                      <dd>{hhmm(t.horario_fim_atraso)}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-gunmetal-gray/15 pt-3">
+                    <button
+                      onClick={() => abrirQrCode(t)}
+                      className="min-h-11 rounded-sm border-2 border-gunmetal-gray px-4 text-sm font-bold text-gunmetal-gray"
+                    >
+                      QR Code
+                    </button>
+                    <button
+                      onClick={() => iniciarEdicao(t)}
+                      className="min-h-11 rounded-sm px-3 text-sm font-bold text-gunmetal-gray underline underline-offset-4"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => remover(t.id)}
+                      className="min-h-11 rounded-sm px-3 text-sm font-bold text-red-700 underline underline-offset-4"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
 
       {qrTurma && (
