@@ -2,25 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import Footer from '../../components/Footer'
-
-interface ItemMenu {
-  rotulo: string
-  caminho: string
-  // Aba do AdminConteudo (?aba=), quando o item aponta para uma delas.
-  aba?: string
-  // Outras abas que também deixam o item ativo.
-  abasExtras?: string[]
-}
-
-const itens: ItemMenu[] = [
-  { rotulo: 'Relatório de presença', caminho: '/admin/relatorio' },
-  { rotulo: 'Turmas e alunos', caminho: '/admin/turmas' },
-  { rotulo: 'Equipe e acessos', caminho: '/admin/usuarios' },
-  { rotulo: 'Avisos', caminho: '/admin/avisos' },
-  { rotulo: 'Manual do Aluno', caminho: '/admin/conteudo', aba: 'manual' },
-  { rotulo: 'Destaque da home', caminho: '/admin/conteudo', aba: 'hero' },
-  { rotulo: 'Links e Classroom', caminho: '/admin/conteudo', aba: 'classroom', abasExtras: ['links'] },
-]
+import { destinoAdmin, itensAdmin } from './adminMenu'
 
 function Menu_({ aoNavegar }: { aoNavegar?: () => void }) {
   const { pathname, search } = useLocation()
@@ -29,7 +11,7 @@ function Menu_({ aoNavegar }: { aoNavegar?: () => void }) {
   return (
     <nav aria-label="Administração" className="flex flex-1 flex-col">
       <ul>
-        {itens.map((item) => {
+        {itensAdmin.map((item) => {
           const ativo = item.aba
             ? pathname === item.caminho &&
               (abaAtual === item.aba || !!item.abasExtras?.includes(abaAtual))
@@ -37,7 +19,7 @@ function Menu_({ aoNavegar }: { aoNavegar?: () => void }) {
           return (
             <li key={item.rotulo}>
               <NavLink
-                to={item.aba ? `${item.caminho}?aba=${item.aba}` : item.caminho}
+                to={destinoAdmin(item)}
                 onClick={aoNavegar}
                 aria-current={ativo ? 'page' : undefined}
                 className={`flex h-11 items-center border-l-4 px-5 text-sm text-white transition hover:bg-white/10 ${
