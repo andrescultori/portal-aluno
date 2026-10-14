@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import Header from './components/Header'
-import Footer from './components/Footer'
+import Shell from './components/Shell'
 import ProtectedRoute from './components/ProtectedRoute'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -21,8 +20,7 @@ import AdminRelatorio from './pages/admin/AdminRelatorio'
 export default function App() {
   return (
     <BrowserRouter>
-      <Header />
-      <main className="flex-1">
+      <Shell>
         <Routes>
           <Route path="/login" element={<Login />} />
 
@@ -100,8 +98,7 @@ export default function App() {
 
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </main>
-      <Footer />
+      </Shell>
     </BrowserRouter>
   )
 }
