@@ -1,7 +1,9 @@
 -- Portal do Aluno UniMissional — schema + RLS
 -- Executar no SQL editor do Supabase (projeto vazio) na ordem em que aparece.
+-- Este arquivo já reflete o estado final: inclui tudo o que as migrations em
+-- supabase/migrations/ fazem. Em projeto novo não é preciso rodá-las depois.
 
-create extension if not exists pgcrypto;
+create extension if not exists pgcrypto with schema extensions;
 
 -- ============================================================
 -- 1. Tabelas
@@ -14,7 +16,7 @@ create table turmas (
   horario_fim_presente time not null,
   horario_fim_atraso time not null,
   ativo boolean not null default true,
-  qr_token text not null unique default encode(gen_random_bytes(16), 'hex')
+  qr_token text not null unique default encode(extensions.gen_random_bytes(16), 'hex')
 );
 
 create table allowed_users (
@@ -145,6 +147,14 @@ as $$
   limit 1;
 $$;
 
+-- Fora do alcance de visitantes sem login; o acesso de authenticated (usado
+-- pelas policies de RLS) e de service_role é concedido de forma explícita,
+-- sem depender do grant implícito a PUBLIC.
+revoke execute on function public.current_aluno_id() from public, anon;
+revoke execute on function public.current_papel()    from public, anon;
+grant  execute on function public.current_aluno_id() to authenticated, service_role;
+grant  execute on function public.current_papel()    to authenticated, service_role;
+
 -- ============================================================
 -- 4. Row Level Security
 -- ============================================================
@@ -186,51 +196,43 @@ create policy "turmas_write_equipe"
   using (public.current_papel() = 'equipe')
   with check (public.current_papel() = 'equipe');
 
-revoke select on turmas from authenticated;
-grant select (id, nome, horario_inicio, horario_fim_presente, horario_fim_atraso, ativo)
-  on turmas to authenticated;
-
-create or replace function public.get_turma_qr_token(p_turma_id uuid)
-returns text
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_token text;
+-- ninguém lê qr_token direto; só as demais colunas, e só usuário logado
+revoke select on public.turmas from anon, authenticated;
+do $$
+declare cols text;
 begin
-  if public.current_papel() <> 'equipe' then
-    raise exception 'not authorized';
-  end if;
+  select string_agg(quote_ident(column_name), ', ' order by ordinal_position) into cols
+    from information_schema.columns
+   where table_schema = 'public' and table_name = 'turmas' and column_name <> 'qr_token';
+  execute format('grant select (%s) on public.turmas to authenticated', cols);
+end $$;
 
+-- RPCs do QR: checagem de papel à prova de NULL (current_papel() é NULL pra
+-- quem não está na whitelist) + gen_random_bytes qualificado, já que o
+-- search_path da função é só 'public' e o pgcrypto vive no schema extensions.
+create or replace function public.get_turma_qr_token(p_turma_id uuid)
+returns text language plpgsql security definer set search_path to 'public' as $$
+declare v_token text;
+begin
+  if coalesce(public.current_papel(), '') <> 'equipe' then raise exception 'not authorized'; end if;
   select qr_token into v_token from turmas where id = p_turma_id;
   return v_token;
-end;
-$$;
+end; $$;
 
 create or replace function public.regenerate_turma_qr_token(p_turma_id uuid)
-returns text
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_token text;
+returns text language plpgsql security definer set search_path to 'public' as $$
+declare v_token text;
 begin
-  if public.current_papel() <> 'equipe' then
-    raise exception 'not authorized';
-  end if;
-
-  update turmas set qr_token = encode(gen_random_bytes(16), 'hex')
-  where id = p_turma_id
-  returning qr_token into v_token;
-
+  if coalesce(public.current_papel(), '') <> 'equipe' then raise exception 'not authorized'; end if;
+  update turmas set qr_token = encode(extensions.gen_random_bytes(16), 'hex')
+   where id = p_turma_id returning qr_token into v_token;
   return v_token;
-end;
-$$;
+end; $$;
 
-grant execute on function public.get_turma_qr_token(uuid) to authenticated;
-grant execute on function public.regenerate_turma_qr_token(uuid) to authenticated;
+revoke execute on function public.get_turma_qr_token(uuid)        from public, anon;
+revoke execute on function public.regenerate_turma_qr_token(uuid) from public, anon;
+grant  execute on function public.get_turma_qr_token(uuid)        to authenticated, service_role;
+grant  execute on function public.regenerate_turma_qr_token(uuid) to authenticated, service_role;
 
 -- attendance_records: aluno lê só os próprios; equipe lê tudo.
 -- Nenhuma policy de INSERT/UPDATE/DELETE para authenticated:
