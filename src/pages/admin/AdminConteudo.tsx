@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Pencil, Trash2, X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import type {
@@ -21,7 +22,11 @@ const abas: { id: Aba; label: string }[] = [
 ]
 
 export default function AdminConteudo() {
-  const [aba, setAba] = useState<Aba>('hero')
+  // A aba vive na URL (?aba=) para o menu lateral do Admin poder apontar direto pra ela.
+  const [params, setParams] = useSearchParams()
+  const abaParam = params.get('aba')
+  const aba: Aba = abas.some((a) => a.id === abaParam) ? (abaParam as Aba) : 'hero'
+  const setAba = (nova: Aba) => setParams({ aba: nova })
 
   return (
     <div>

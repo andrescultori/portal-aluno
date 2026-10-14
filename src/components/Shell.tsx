@@ -9,12 +9,14 @@ export default function Shell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const ehLogin = pathname === '/login'
   const ehCheckin = pathname === '/presenca'
+  const ehAdmin = pathname.startsWith('/admin')
 
   return (
     <>
-      {ehCheckin ? <HeaderCheckin /> : !ehLogin && <Header />}
+      {ehCheckin ? <HeaderCheckin /> : !ehLogin && !ehAdmin && <Header />}
       <main className="flex-1">{children}</main>
-      <Footer variante={ehLogin ? 'discreto' : 'aluno'} />
+      {/* No Admin o rodapé discreto fica dentro do AdminLayout, ao lado da sidebar. */}
+      {!ehAdmin && <Footer variante={ehLogin ? 'discreto' : 'aluno'} />}
     </>
   )
 }

@@ -16,6 +16,7 @@ import AdminUsuarios from './pages/admin/AdminUsuarios'
 import AdminTurmas from './pages/admin/AdminTurmas'
 import AdminConteudo from './pages/admin/AdminConteudo'
 import AdminRelatorio from './pages/admin/AdminRelatorio'
+import AdminAvisos from './pages/admin/AdminAvisos'
 
 export default function App() {
   return (
@@ -94,6 +95,7 @@ export default function App() {
             <Route path="turmas" element={<AdminTurmas />} />
             <Route path="conteudo" element={<AdminConteudo />} />
             <Route path="relatorio" element={<AdminRelatorio />} />
+            <Route path="avisos" element={<AdminAvisos />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { horaLocal } from '../../lib/datas'
+import StatusSelo, { statusRotulo } from '../../components/StatusSelo'
 import type { AttendanceStatus, Turma } from '../../types/database'
 
 interface LinhaRelatorio {
   id: string
   data: string
   status: AttendanceStatus
+  horario_checkin: string | null
   aluno_nome: string
   turma_nome: string
 }
@@ -20,11 +23,27 @@ function trintaDiasAtras() {
   return d.toISOString().slice(0, 10)
 }
 
+function formatarData(iso: string) {
+  return new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR')
+}
+
+function semAcento(texto: string) {
+  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+
+function celulaCsv(valor: string) {
+  return `"${valor.replace(/"/g, '""')}"`
+}
+
+const campo =
+  'mt-1 block min-h-11 w-full rounded-sm border border-gunmetal-gray/40 bg-pure-white px-3 text-sm text-onyx-black'
+
 export default function AdminRelatorio() {
   const [turmas, setTurmas] = useState<Turma[]>([])
   const [turmaId, setTurmaId] = useState('')
   const [inicio, setInicio] = useState(trintaDiasAtras())
   const [fim, setFim] = useState(hoje())
+  const [busca, setBusca] = useState('')
   const [linhas, setLinhas] = useState<LinhaRelatorio[]>([])
   const [carregando, setCarregando] = useState(false)
 
@@ -40,7 +59,7 @@ export default function AdminRelatorio() {
     setCarregando(true)
     let query = supabase
       .from('attendance_records')
-      .select('id, data, status, allowed_users(nome), turmas(nome)')
+      .select('id, data, status, horario_checkin, allowed_users(nome), turmas(nome)')
       .gte('data', inicio)
       .lte('data', fim)
       .order('data', { ascending: false })
@@ -53,6 +72,7 @@ export default function AdminRelatorio() {
         id: string
         data: string
         status: AttendanceStatus
+        horario_checkin: string | null
         allowed_users: { nome: string } | null
         turmas: { nome: string } | null
       }
@@ -60,6 +80,7 @@ export default function AdminRelatorio() {
         id: r.id,
         data: r.data,
         status: r.status,
+        horario_checkin: r.horario_checkin,
         aluno_nome: r.allowed_users?.nome ?? '-',
         turma_nome: r.turmas?.nome ?? '-',
       }
@@ -72,17 +93,36 @@ export default function AdminRelatorio() {
     buscar()
   }, [])
 
-  const contagem = linhas.reduce(
+  // "Buscar aluno" filtra no navegador, sobre o período já carregado.
+  const visiveis = useMemo(() => {
+    const termo = semAcento(busca.trim())
+    return termo ? linhas.filter((l) => semAcento(l.aluno_nome).includes(termo)) : linhas
+  }, [linhas, busca])
+
+  const contagem = visiveis.reduce(
     (acc, l) => ({ ...acc, [l.status]: (acc[l.status] ?? 0) + 1 }),
     {} as Record<AttendanceStatus, number>,
   )
 
-  function exportarCsv() {
-    const cabecalho = 'data,aluno,turma,status\n'
-    const corpo = linhas
-      .map((l) => `${l.data},"${l.aluno_nome}","${l.turma_nome}",${l.status}`)
+  const registro = (l: LinhaRelatorio) => (l.horario_checkin ? horaLocal(l.horario_checkin) : '—')
+
+  // CSV para Excel em português: separador ";" e BOM UTF-8 (acentos corretos).
+  function exportarExcel() {
+    const cabecalho = ['aluno', 'turma', 'data', 'registro', 'status'].join(';')
+    const corpo = visiveis
+      .map((l) =>
+        [
+          celulaCsv(l.aluno_nome),
+          celulaCsv(l.turma_nome),
+          formatarData(l.data),
+          l.horario_checkin ? horaLocal(l.horario_checkin) : '',
+          statusRotulo(l.status),
+        ].join(';'),
+      )
       .join('\n')
-    const blob = new Blob([cabecalho + corpo], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['﻿' + cabecalho + '\n' + corpo], {
+      type: 'text/csv;charset=utf-8;',
+    })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -92,17 +132,35 @@ export default function AdminRelatorio() {
   }
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Relatório de presença</h1>
+    <div className="mx-auto max-w-6xl">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">
+            Administração
+          </p>
+          <h1 className="font-display text-[40px] leading-none text-gunmetal-gray md:text-[48px]">
+            Relatório de presença
+          </h1>
+        </div>
+        <button
+          onClick={exportarExcel}
+          disabled={visiveis.length === 0}
+          className="min-h-12 rounded-sm bg-mandarin-orange px-6 font-display text-2xl font-bold text-onyx-black transition hover:bg-mandarin-orange-dark disabled:opacity-50"
+        >
+          Exportar Excel
+        </button>
+      </div>
 
-      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-none border border-slate-200 bg-white p-4">
-        <label className="text-sm text-slate-500">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          buscar()
+        }}
+        className="mt-6 grid gap-3 border border-gunmetal-gray/25 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_1.2fr_auto] lg:items-end"
+      >
+        <label className="text-sm font-bold text-gunmetal-gray">
           Turma
-          <select
-            value={turmaId}
-            onChange={(e) => setTurmaId(e.target.value)}
-            className="mt-1 block rounded-sm border border-slate-300 px-3 py-2 text-sm"
-          >
+          <select value={turmaId} onChange={(e) => setTurmaId(e.target.value)} className={campo}>
             <option value="">Todas</option>
             {turmas.map((t) => (
               <option key={t.id} value={t.id}>
@@ -111,84 +169,101 @@ export default function AdminRelatorio() {
             ))}
           </select>
         </label>
-        <label className="text-sm text-slate-500">
+        <label className="text-sm font-bold text-gunmetal-gray">
           De
-          <input
-            type="date"
-            value={inicio}
-            onChange={(e) => setInicio(e.target.value)}
-            className="mt-1 block rounded-sm border border-slate-300 px-3 py-2 text-sm"
-          />
+          <input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} className={campo} />
         </label>
-        <label className="text-sm text-slate-500">
+        <label className="text-sm font-bold text-gunmetal-gray">
           Até
+          <input type="date" value={fim} onChange={(e) => setFim(e.target.value)} className={campo} />
+        </label>
+        <label className="text-sm font-bold text-gunmetal-gray">
+          Buscar aluno
           <input
-            type="date"
-            value={fim}
-            onChange={(e) => setFim(e.target.value)}
-            className="mt-1 block rounded-sm border border-slate-300 px-3 py-2 text-sm"
+            type="search"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Nome do aluno"
+            className={campo}
           />
         </label>
         <button
-          onClick={buscar}
-          className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark"
+          type="submit"
+          className="min-h-11 rounded-sm bg-gunmetal-gray px-6 text-sm font-bold text-white transition hover:bg-gunmetal-gray-dark sm:col-span-2 lg:col-span-1"
         >
           Filtrar
         </button>
-        <button
-          onClick={exportarCsv}
-          disabled={linhas.length === 0}
-          className="rounded-sm border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 disabled:opacity-50"
-        >
-          Exportar CSV
-        </button>
-      </div>
+      </form>
 
-      <div className="mb-4 flex gap-4 text-sm">
-        <span className="rounded-sm bg-green-100 px-3 py-1 text-green-700">
-          Presente: {contagem.presente ?? 0}
-        </span>
-        <span className="rounded-sm bg-amber-100 px-3 py-1 text-amber-700">
-          Atraso: {contagem.atraso ?? 0}
-        </span>
-        <span className="rounded-sm bg-red-100 px-3 py-1 text-red-700">
-          Falta: {contagem.falta ?? 0}
-        </span>
-      </div>
-
-      {carregando ? (
-        <p className="text-slate-500">Carregando...</p>
-      ) : (
-        <div className="overflow-x-auto rounded-none border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-2">Data</th>
-                <th className="px-4 py-2">Aluno</th>
-                <th className="px-4 py-2">Turma</th>
-                <th className="px-4 py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {linhas.map((l) => (
-                <tr key={l.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2">{new Date(l.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
-                  <td className="px-4 py-2">{l.aluno_nome}</td>
-                  <td className="px-4 py-2">{l.turma_nome}</td>
-                  <td className="px-4 py-2 capitalize">{l.status}</td>
-                </tr>
-              ))}
-              {linhas.length === 0 && (
-                <tr>
-                  <td className="px-4 py-3 text-slate-400" colSpan={4}>
-                    Nenhum registro no período selecionado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="bg-gunmetal-gray p-5 text-white">
+          <p className="text-sm font-bold uppercase tracking-wide">Presentes</p>
+          <p className="font-display text-[56px] font-bold leading-none">{contagem.presente ?? 0}</p>
         </div>
-      )}
+        <div className="bg-soft-pink p-5 text-gunmetal-gray">
+          <p className="text-sm font-bold uppercase tracking-wide">Atrasos</p>
+          <p className="font-display text-[56px] font-bold leading-none">{contagem.atraso ?? 0}</p>
+        </div>
+        <div className="border-[3px] border-mandarin-orange p-5 text-onyx-black">
+          <p className="text-sm font-bold uppercase tracking-wide">Faltas</p>
+          <p className="font-display text-[56px] font-bold leading-none">{contagem.falta ?? 0}</p>
+        </div>
+      </div>
+
+      <div className="mt-6" aria-live="polite">
+        {carregando ? (
+          <p className="text-onyx-black">Carregando...</p>
+        ) : visiveis.length === 0 ? (
+          <p className="border border-gunmetal-gray/25 p-4 text-sm text-onyx-black">
+            Nenhum registro no período selecionado.
+          </p>
+        ) : (
+          <>
+            {/* Tela larga: tabela */}
+            <div className="hidden overflow-x-auto border border-gunmetal-gray/25 md:block">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-soft-pink text-xs uppercase tracking-wide text-gunmetal-gray">
+                  <tr>
+                    <th scope="col" className="px-4 py-3 font-bold">Aluno</th>
+                    <th scope="col" className="px-4 py-3 font-bold">Turma</th>
+                    <th scope="col" className="px-4 py-3 font-bold">Data</th>
+                    <th scope="col" className="px-4 py-3 font-bold">Registro</th>
+                    <th scope="col" className="px-4 py-3 font-bold">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="text-onyx-black">
+                  {visiveis.map((l) => (
+                    <tr key={l.id} className="border-b border-gunmetal-gray/15">
+                      <td className="px-4 py-3 font-bold text-gunmetal-gray">{l.aluno_nome}</td>
+                      <td className="px-4 py-3">{l.turma_nome}</td>
+                      <td className="px-4 py-3">{formatarData(l.data)}</td>
+                      <td className="px-4 py-3">{registro(l)}</td>
+                      <td className="px-4 py-3">
+                        <StatusSelo status={l.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Celular: um cartão por linha */}
+            <ul className="space-y-3 md:hidden">
+              {visiveis.map((l) => (
+                <li key={l.id} className="border border-gunmetal-gray/25 p-4">
+                  <p className="font-bold text-gunmetal-gray">{l.aluno_nome}</p>
+                  <p className="mt-1 text-sm text-onyx-black">
+                    {l.turma_nome} · {formatarData(l.data)} · {registro(l)}
+                  </p>
+                  <div className="mt-2">
+                    <StatusSelo status={l.status} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
     </div>
   )
 }
