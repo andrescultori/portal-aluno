@@ -1,0 +1,14 @@
+# Configuração do Supabase CLI (lida por `supabase functions deploy`).
+#
+# project_id é só o identificador LOCAL do CLI (nome dos containers do
+# `supabase start`), não o projeto remoto. O projeto remoto se escolhe com
+# `supabase link --project-ref <ref>` ou `--project-ref <ref>` no comando.
+project_id = "portal-aluno"
+
+[functions.checkin-presenca]
+# A função já autentica o usuário por conta própria (auth.getUser() com o JWT
+# do cabeçalho Authorization) e responde 401 sem ele, então não depende da
+# checagem do gateway. Com verify_jwt = true o gateway pode rejeitar tokens
+# assinados com as chaves JWT assimétricas dos projetos novos do Supabase;
+# com false o deploy funciona nos dois modos de assinatura.
+verify_jwt = false
