@@ -80,3 +80,11 @@ export interface Setting {
   chave: string
   valor: string
 }
+
+export interface Aviso {
+  id: string
+  titulo: string
+  resumo: string | null
+  publicado_em: string
+  ativo: boolean
+}

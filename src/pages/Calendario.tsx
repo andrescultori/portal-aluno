@@ -1,23 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy } from 'lucide-react'
-
-interface EventoCalendario {
-  id: string
-  titulo: string
-  inicio: string
-  fim?: string
-  descricao?: string
-  link?: string
-}
-
-interface ItemGoogleCalendar {
-  id: string
-  summary?: string
-  description?: string
-  htmlLink?: string
-  start: { date?: string; dateTime?: string }
-  end?: { date?: string; dateTime?: string }
-}
+import {
+  calendarApiKey as apiKey,
+  calendarId,
+  mapearEvento,
+  type EventoCalendario,
+  type ItemGoogleCalendar,
+} from '../lib/googleCalendar'
 
 const eventosMock: EventoCalendario[] = [
   { id: '1', titulo: 'Início do semestre', inicio: '2026-02-02' },
@@ -27,28 +16,15 @@ const eventosMock: EventoCalendario[] = [
 
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
-const apiKey = import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY
-const calendarId = import.meta.env.VITE_GOOGLE_CALENDAR_ID
 const urlCalendarioPublico = calendarId
   ? `https://calendar.google.com/calendar/ical/${encodeURIComponent(calendarId)}/public/basic.ics`
   : null
-
-function pad(n: number) {
-  return String(n).padStart(2, '0')
-}
 
 // Data em meia-noite local, ignorando qualquer horário presente na string.
 function paraDiaLocal(iso: string): Date {
   const semHora = iso.includes('T') ? iso.slice(0, 10) : iso
   const [ano, mes, dia] = semHora.split('-').map(Number)
   return new Date(ano, mes - 1, dia)
-}
-
-function diaAnterior(dataISO: string): string {
-  const [ano, mes, dia] = dataISO.split('-').map(Number)
-  const d = new Date(ano, mes - 1, dia)
-  d.setDate(d.getDate() - 1)
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 function mesmoDia(a: Date, b: Date) {
@@ -60,27 +36,6 @@ function eventoNoDia(evento: EventoCalendario, dia: Date) {
   const fim = evento.fim ? paraDiaLocal(evento.fim) : inicio
   const t = dia.getTime()
   return t >= inicio.getTime() && t <= fim.getTime()
-}
-
-function mapearEvento(item: ItemGoogleCalendar): EventoCalendario {
-  const inicio = item.start.date ?? item.start.dateTime ?? ''
-  let fim = item.end?.date ?? item.end?.dateTime
-
-  if (item.start.date && item.end?.date) {
-    // Eventos de dia inteiro: o "end.date" do Google é exclusivo (o dia
-    // seguinte ao último dia real do evento) — corrige pra inclusivo.
-    const fimCorrigido = diaAnterior(item.end.date)
-    fim = fimCorrigido === inicio ? undefined : fimCorrigido
-  }
-
-  return {
-    id: item.id,
-    titulo: item.summary ?? '(sem título)',
-    inicio,
-    fim,
-    descricao: item.description,
-    link: item.htmlLink,
-  }
 }
 
 function formatarData(data: string) {
@@ -143,7 +98,7 @@ export default function Calendario() {
         return data
       })
       .then((data) => {
-        setEventos((data.items ?? []).map(mapearEvento))
+        setEventos(((data.items ?? []) as ItemGoogleCalendar[]).map(mapearEvento))
         setUsandoMock(false)
         setErro(null)
       })

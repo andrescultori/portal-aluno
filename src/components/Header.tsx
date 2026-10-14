@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
-import { NavLink } from 'react-router-dom'
-import { Menu, User, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, useLocation } from 'react-router-dom'
+import { ChevronDown, Menu, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import type { LinkSection } from '../types/database'
+import type { InfoPage, LinkSection } from '../types/database'
 
 interface ItemNav {
   to: string
@@ -11,27 +11,87 @@ interface ItemNav {
   end?: boolean
 }
 
-const dropdownLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `block rounded-sm px-3 py-2 text-sm font-medium transition ${
-    isActive ? 'bg-soft-pink text-onyx-black' : 'text-gunmetal-gray hover:bg-neutral-tint'
+interface GrupoNav {
+  rotulo: string
+  itens: ItemNav[]
+  // Prefixos de rota que deixam o grupo "ativo" no menu.
+  prefixos: string[]
+}
+
+function inicial(nome: string) {
+  return (nome.trim()[0] ?? '?').toUpperCase()
+}
+
+const itemClasse = (ativo: boolean) =>
+  `relative flex h-16 items-center px-3 font-display text-[18px] transition hover:text-white after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] ${
+    ativo
+      ? 'font-bold text-white after:bg-mandarin-orange'
+      : 'font-semibold text-white/85 after:bg-transparent'
   }`
 
-const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `rounded-sm px-3 py-1.5 text-sm font-medium transition ${
-    isActive ? 'bg-white/20 text-white' : 'text-white/85 hover:bg-white/10 hover:text-white'
-  }`
+function MenuSuspenso({ grupo, ativo }: { grupo: GrupoNav; ativo: boolean }) {
+  const [aberto, setAberto] = useState(false)
+  const raiz = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
 
-function iniciais(nome: string) {
-  const partes = nome.trim().split(/\s+/)
-  const primeiro = partes[0]?.[0] ?? ''
-  const ultimo = partes.length > 1 ? partes[partes.length - 1][0] : ''
-  return (primeiro + ultimo).toUpperCase()
+  useEffect(() => setAberto(false), [pathname])
+
+  useEffect(() => {
+    if (!aberto) return
+    const fora = (e: MouseEvent) => {
+      if (!raiz.current?.contains(e.target as Node)) setAberto(false)
+    }
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setAberto(false)
+    document.addEventListener('mousedown', fora)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', fora)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [aberto])
+
+  return (
+    <div ref={raiz} className="relative">
+      <button
+        type="button"
+        aria-expanded={aberto}
+        aria-haspopup="true"
+        onClick={() => setAberto((v) => !v)}
+        className={`${itemClasse(ativo)} gap-1`}
+      >
+        {grupo.rotulo}
+        <ChevronDown size={16} aria-hidden="true" className={aberto ? 'rotate-180' : ''} />
+      </button>
+      {aberto && (
+        <div className="absolute left-0 top-full z-50 min-w-60 border border-gunmetal-gray/20 bg-pure-white py-1 shadow-[0_14px_34px_rgba(59,50,78,0.18)]">
+          {grupo.itens.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                `block min-h-11 px-4 py-2.5 text-[15px] text-gunmetal-gray hover:bg-soft-pink ${
+                  isActive ? 'bg-soft-pink font-bold' : ''
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function Header() {
   const { perfil, signOut } = useAuth()
-  const [open, setOpen] = useState(false)
+  const { pathname } = useLocation()
+  const [menuAberto, setMenuAberto] = useState(false)
   const [sections, setSections] = useState<LinkSection[]>([])
+  const [paginas, setPaginas] = useState<InfoPage[]>([])
+
+  useEffect(() => setMenuAberto(false), [pathname])
 
   useEffect(() => {
     if (!perfil) return
@@ -40,91 +100,196 @@ export default function Header() {
       .select('*')
       .order('ordem')
       .then(({ data }) => setSections((data as LinkSection[]) ?? []))
+    supabase
+      .from('info_pages')
+      .select('*')
+      .order('ordem')
+      .then(({ data }) => setPaginas((data as InfoPage[]) ?? []))
   }, [perfil])
+
+  const logo = (
+    <Link to="/" aria-label="Portal do Aluno UniMissional — início" className="flex shrink-0 items-center">
+      <img src="/logo/monocromia-branco.png" alt="UniMissional" className="h-12 w-auto" />
+    </Link>
+  )
 
   if (!perfil) {
     return (
-      <header className="header-gradiente rounded-b-[36px] px-brand-3 py-6">
-        <p className="mx-auto max-w-6xl text-center font-display text-xl font-bold text-white">
-          Portal do Aluno
-        </p>
+      <header className="bg-gunmetal-gray">
+        <div className="mx-auto flex h-16 max-w-7xl items-center px-4">{logo}</div>
       </header>
     )
   }
 
-  const itens: ItemNav[] = [
+  const principais: ItemNav[] = [
     { to: '/', label: 'Início', end: true },
-    { to: '/manual', label: 'Manual do Aluno' },
-    { to: '/classroom', label: 'Google Classroom' },
-    { to: '/calendario', label: 'Calendário' },
     { to: '/presenca', label: 'Presença' },
-    ...sections.map((s) => ({ to: `/links/${s.id}`, label: s.titulo })),
-    ...(perfil.papel === 'equipe' ? [{ to: '/admin', label: 'Admin' }] : []),
+    { to: '/calendario', label: 'Calendário' },
+    { to: '/manual', label: 'Manual do Aluno' },
   ]
 
+  const grupos: GrupoNav[] = [
+    {
+      rotulo: 'Classroom e links',
+      prefixos: ['/classroom', '/links'],
+      itens: [
+        { to: '/classroom', label: 'Google Classroom' },
+        ...sections.map((s) => ({ to: `/links/${s.id}`, label: s.titulo })),
+      ],
+    },
+    ...(paginas.length > 0
+      ? [
+          {
+            rotulo: 'Informações',
+            prefixos: ['/paginas'],
+            itens: paginas.map((p) => ({ to: `/paginas/${p.slug}`, label: p.titulo })),
+          },
+        ]
+      : []),
+  ]
+
+  const primeiroNome = perfil.nome.trim().split(/\s+/)[0]
+
   return (
-    <header className="header-gradiente relative px-brand-3 pb-6 pt-5 rounded-b-[36px]">
-      <div className="mx-auto flex max-w-6xl items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-white/20 text-lg font-bold text-white">
-            {iniciais(perfil.nome)}
-          </div>
-          <div>
-            <p className="font-display text-2xl font-bold leading-tight text-white md:text-[28px]">
-              Olá, {perfil.nome.split(' ')[0]}!
-            </p>
-            <p className="text-[13px] text-white/90">Portal do Aluno · UniMissional</p>
-            <span className="mt-2 inline-flex items-center gap-1.5 rounded-sm bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-              <User size={12} />
-              {perfil.papel === 'equipe' ? 'Equipe' : 'Aluno'}
-            </span>
-          </div>
-        </div>
+    <header className="relative bg-gunmetal-gray">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
+        {logo}
 
-        <button
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? 'Fechar menu' : 'Abrir menu'}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-white/20 text-white md:hidden"
-        >
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </div>
-
-      {/* Menu completo — telas médias/grandes */}
-      <nav className="mx-auto mt-4 hidden max-w-6xl flex-wrap items-center gap-1 md:flex">
-        {itens.map((item) => (
-          <NavLink key={item.to} to={item.to} end={item.end} className={desktopLinkClass}>
-            {item.label}
-          </NavLink>
-        ))}
-        <button
-          onClick={signOut}
-          className="rounded-sm px-3 py-1.5 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white"
-        >
-          Sair
-        </button>
-      </nav>
-
-      {/* Menu em painel — só mobile */}
-      {open && (
-        <nav className="absolute right-brand-3 top-full z-50 mt-2 w-64 rounded-none bg-white p-2 text-left shadow-[0_14px_34px_rgba(59,50,78,0.14)] md:hidden">
-          {itens.map((item) => (
+        {/* Menu completo — telas grandes */}
+        <nav aria-label="Principal" className="ml-4 hidden flex-1 items-center lg:flex">
+          {principais.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
-              className={dropdownLinkClass}
-              onClick={() => setOpen(false)}
+              className={({ isActive }) => itemClasse(isActive)}
             >
               {item.label}
             </NavLink>
           ))}
+          {grupos.map((g) => (
+            <MenuSuspenso
+              key={g.rotulo}
+              grupo={g}
+              ativo={g.prefixos.some((p) => pathname.startsWith(p))}
+            />
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-3 lg:flex">
+          {perfil.papel === 'equipe' && (
+            <Link
+              to="/admin"
+              className="flex min-h-11 items-center px-2 text-sm font-bold text-soft-pink underline-offset-4 hover:underline"
+            >
+              Admin
+            </Link>
+          )}
+          <span
+            aria-hidden="true"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-soft-pink font-display text-xl font-bold text-gunmetal-gray"
+          >
+            {inicial(perfil.nome)}
+          </span>
+          <span className="max-w-40 truncate text-sm font-bold text-white" title={perfil.nome}>
+            {primeiroNome}
+          </span>
           <button
+            type="button"
             onClick={signOut}
-            className="block w-full rounded-sm px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-neutral-tint"
+            className="min-h-11 rounded-sm px-3 text-sm font-bold text-white/85 underline-offset-4 hover:text-white hover:underline"
           >
             Sair
           </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMenuAberto((v) => !v)}
+          aria-label={menuAberto ? 'Fechar menu' : 'Abrir menu'}
+          aria-expanded={menuAberto}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm border-2 border-white/60 text-white lg:hidden"
+        >
+          {menuAberto ? <X size={22} /> : <Menu size={22} />}
+        </button>
+      </div>
+
+      {/* Menu em painel — celular e tablet */}
+      {menuAberto && (
+        <nav
+          aria-label="Principal"
+          className="absolute inset-x-0 top-full z-50 max-h-[calc(100svh-64px)] overflow-y-auto border-t border-white/15 bg-gunmetal-gray pb-4 shadow-[0_14px_34px_rgba(59,50,78,0.3)] lg:hidden"
+        >
+          <div className="flex items-center gap-3 px-4 py-4">
+            <span
+              aria-hidden="true"
+              className="flex h-10 w-10 shrink-0 items-center justify-center bg-soft-pink font-display text-xl font-bold text-gunmetal-gray"
+            >
+              {inicial(perfil.nome)}
+            </span>
+            <span className="truncate text-sm font-bold text-white">{perfil.nome}</span>
+          </div>
+
+          <ul>
+            {principais.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center border-l-4 px-4 py-2.5 text-base text-white ${
+                      isActive
+                        ? 'border-mandarin-orange bg-white/10 font-bold'
+                        : 'border-transparent font-medium'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+
+          {grupos.map((g) => (
+            <div key={g.rotulo} className="mt-3">
+              <p className="px-4 pb-1 text-xs font-bold uppercase tracking-wide text-soft-pink">
+                {g.rotulo}
+              </p>
+              <ul>
+                {g.itens.map((item) => (
+                  <li key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      className={({ isActive }) =>
+                        `flex min-h-11 items-center border-l-4 px-4 py-2.5 text-base text-white ${
+                          isActive
+                            ? 'border-mandarin-orange bg-white/10 font-bold'
+                            : 'border-transparent font-medium'
+                        }`
+                      }
+                    >
+                      {item.label}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <div className="mt-3 border-t border-white/15 pt-2">
+            {perfil.papel === 'equipe' && (
+              <Link to="/admin" className="flex min-h-11 items-center px-4 text-base font-bold text-soft-pink">
+                Administração
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={signOut}
+              className="flex min-h-11 w-full items-center px-4 text-left text-base font-bold text-white"
+            >
+              Sair
+            </button>
+          </div>
         </nav>
       )}
     </header>
