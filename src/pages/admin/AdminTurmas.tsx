@@ -24,6 +24,7 @@ export default function AdminTurmas() {
   const [qrToken, setQrToken] = useState<string | null>(null)
   const [qrCarregando, setQrCarregando] = useState(false)
   const [qrErro, setQrErro] = useState<string | null>(null)
+  const [erroLista, setErroLista] = useState<string | null>(null)
 
   async function carregar() {
     setCarregando(true)
@@ -51,8 +52,20 @@ export default function AdminTurmas() {
     carregar()
   }
 
-  async function remover(id: string) {
-    await supabase.from('turmas').delete().eq('id', id)
+  async function remover(turma: Turma) {
+    if (!confirm(`Remover a turma "${turma.nome}"?`)) return
+    setErroLista(null)
+    const { data, error } = await supabase.from('turmas').delete().eq('id', turma.id).select('id')
+    if (error) {
+      // 23503 = violação de chave estrangeira: ainda há alunos ou presenças ligados à turma.
+      setErroLista(
+        error.code === '23503'
+          ? `Não dá para remover "${turma.nome}": ainda há alunos vinculados a ela ou registros de presença. Desative a turma (botão "Ativa") ou mova os alunos para outra turma antes.`
+          : `Não foi possível remover "${turma.nome}": ${error.message}`,
+      )
+    } else if (!data || data.length === 0) {
+      setErroLista(`Não foi possível remover "${turma.nome}": a exclusão não foi permitida.`)
+    }
     carregar()
   }
 
@@ -168,6 +181,15 @@ export default function AdminTurmas() {
         </button>
       </form>
 
+      {erroLista && (
+        <p
+          role="alert"
+          className="mb-4 border-l-4 border-mandarin-orange bg-soft-pink p-4 text-sm text-onyx-black"
+        >
+          {erroLista}
+        </p>
+      )}
+
       {carregando ? (
         <p className="text-onyx-black">Carregando...</p>
       ) : (
@@ -280,7 +302,7 @@ export default function AdminTurmas() {
                           Editar
                         </button>
                         <button
-                          onClick={() => remover(t.id)}
+                          onClick={() => remover(t)}
                           className="text-xs font-medium text-red-600 hover:underline"
                         >
                           Remover
@@ -395,7 +417,7 @@ export default function AdminTurmas() {
                       Editar
                     </button>
                     <button
-                      onClick={() => remover(t.id)}
+                      onClick={() => remover(t)}
                       className="min-h-11 rounded-sm px-3 text-sm font-bold text-red-700 underline underline-offset-4"
                     >
                       Remover
