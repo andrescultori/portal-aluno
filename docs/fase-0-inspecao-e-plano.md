@@ -103,3 +103,19 @@ Contagens: `allowed_users` 4 equipe + 19 alunos (ativos); `propostas.perfis` 5 (
 Agir como cada papel e verificar: tutor não lê `aluno_saude`; aluno não lê outro aluno; aluno não altera `status`/`ra`/`casa_id`;
 secretaria não lê saúde; **`selecao.registrar_checkin` continua criando o aluno** (com dados de teste, sem pessoas reais).
 Resultado será mostrado antes de qualquer merge.
+
+## 6. Decisions (2026-11-03) and results
+
+- D1: staff roles confirmed by the owner (seeded out of band, never committed). D2: `emissor` kept as a label only;
+  **the Propostas app stays separate** — no `propostas.*` / `selecao.*` object was changed, and no row was added to
+  `propostas.planos` (plans got their own copy in `alunos.planos`, including "Equipe").
+- D3 expose `alunos`, D4 e-mail bridge, D5 plans, D7 audit (admin-only, CPF masked): approved.
+- D8: no Supabase branch (cost). Tests run on a local Postgres 16 replica built from this inspection
+  (`supabase/tests/`): **98/98 checks pass**, migrations are idempotent (second run clean), and
+  `selecao.registrar_checkin` (verbatim copy) keeps working, including its ON CONFLICT update path.
+- Legacy policies `alunos_leitura` / `alunos_dp_leitura` are kept (policies are OR-ed), so nothing the
+  Processo Seletivo side relies on changes. A test documents that a legacy Propostas profile still reads
+  `alunos.alunos`; retiring those policies is a separate, later decision.
+- R1 reproduced on the replica: a student imported without `candidato_id` whose e-mail later arrives through
+  the Make check-in makes `registrar_checkin` fail with `alunos_email_uq`. This is existing behaviour (it also
+  happens today if such a row exists), not caused by the migrations; see the import plan.
