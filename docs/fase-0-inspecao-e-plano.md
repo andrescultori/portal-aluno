@@ -111,11 +111,16 @@ Resultado será mostrado antes de qualquer merge.
   `propostas.planos` (plans got their own copy in `alunos.planos`, including "Equipe").
 - D3 expose `alunos`, D4 e-mail bridge, D5 plans, D7 audit (admin-only, CPF masked): approved.
 - D8: no Supabase branch (cost). Tests run on a local Postgres 16 replica built from this inspection
-  (`supabase/tests/`): **98/98 checks pass**, migrations are idempotent (second run clean), and
+  (`supabase/tests/`): **111/111 checks pass**, migrations are idempotent (second run clean), and
   `selecao.registrar_checkin` (verbatim copy) keeps working, including its ON CONFLICT update path.
-- Legacy policies `alunos_leitura` / `alunos_dp_leitura` are kept (policies are OR-ed), so nothing the
-  Processo Seletivo side relies on changes. A test documents that a legacy Propostas profile still reads
-  `alunos.alunos`; retiring those policies is a separate, later decision.
+- **Update (owner review):** the legacy policies `alunos_leitura` / `alunos_dp_leitura` are now DROPPED in migration 7.
+  They depended on `selecao.eh_equipe()` / `eh_coordenacao_ou_admin()` (true for any `propostas.perfis` row), so once
+  `alunos` is exposed they would have let emissores read every student and Propostas coordenacao/admin read CPF and
+  addresses. Safe because nothing reached them through the API before and `registrar_checkin` is security definer.
+  Tests now assert that an emissor-only user, a Propostas-only coordenacao and a Propostas-only admin (no `staff_roles`
+  row) read 0 rows from `alunos.alunos` / `alunos.dados_pessoais`.
+- Migration 9 now carries a guard: it aborts unless the live `pgrst.db_schemas` is exactly
+  `public, graphql_public, propostas, selecao`, and sets exactly `public, graphql_public, propostas, selecao, alunos`.
 - R1 reproduced on the replica: a student imported without `candidato_id` whose e-mail later arrives through
   the Make check-in makes `registrar_checkin` fail with `alunos_email_uq`. This is existing behaviour (it also
   happens today if such a row exists), not caused by the migrations; see the import plan.

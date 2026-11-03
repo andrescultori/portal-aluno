@@ -36,16 +36,25 @@ grant execute on all functions in schema t to public;
 insert into auth.users (email) values
   ('ana@test.local'), ('bia@test.local'), ('adm@test.local'), ('coord@test.local'), ('sec@test.local'),
   ('fin@test.local'), ('tutor@test.local'), ('tutor2@test.local'), ('lider@test.local'),
-  ('legacy@test.local'), ('nobody@test.local');
+  ('legacy@test.local'), ('nobody@test.local'),
+  ('pcoord@test.local'), ('padmin@test.local'), ('mentoremissor@test.local');
 
 insert into public.staff_roles (email, role) values
   ('adm@test.local', 'admin'), ('coord@test.local', 'coordenacao'), ('sec@test.local', 'secretaria'),
   ('fin@test.local', 'financeiro'), ('tutor@test.local', 'tutor'), ('tutor2@test.local', 'tutor'),
-  ('lider@test.local', 'lider_casa'), ('legacy@test.local', 'emissor');
+  ('lider@test.local', 'lider_casa'), ('legacy@test.local', 'emissor'),
+  ('mentoremissor@test.local', 'mentor'), ('mentoremissor@test.local', 'emissor');
 
 -- legacy Propostas profile (existing behaviour must not change)
 insert into propostas.perfis (user_id, email, nome, papel)
   select id, 'legacy@test.local', 'Legacy', 'emissor' from auth.users where email = 'legacy@test.local';
+-- Propostas-only coordenacao / admin: they have NO staff_roles row
+insert into propostas.perfis (user_id, email, nome, papel)
+  select id, 'pcoord@test.local', 'PCoord', 'coordenacao' from auth.users where email = 'pcoord@test.local';
+insert into propostas.perfis (user_id, email, nome, papel)
+  select id, 'padmin@test.local', 'PAdmin', 'admin' from auth.users where email = 'padmin@test.local';
+insert into propostas.perfis (user_id, email, nome, papel)
+  select id, 'mentoremissor@test.local', 'MentorEmissor', 'emissor' from auth.users where email = 'mentoremissor@test.local';
 
 insert into alunos.semestres (codigo, atual) values ('2026-2', true), ('2026-1', false);
 
@@ -190,12 +199,46 @@ select t.ok('coordenacao reads status history', (select count(*) from alunos.alu
 select t.ok('coordenacao can write reference data', t.affected($$insert into alunos.casas (nome) values ('Casa Nova')$$) = 1);
 reset role;
 
--- ------------------------------------------------------------------ legacy Propostas profile (unchanged behaviour)
-select t.as_user('legacy@test.local');
-select t.ok('LEGACY: propostas profile still reads alunos.alunos via the old policy', (select count(*) from alunos.alunos) = 2);
-select t.ok('LEGACY: propostas emissor still cannot read personal data', (select count(*) from alunos.dados_pessoais) = 0);
+-- ------------------------------------------------------------------ Propostas profiles must NOT reach student data
+-- (legacy policies alunos_leitura / alunos_dp_leitura were dropped by migration 7)
+select t.as_user('legacy@test.local');   -- emissor only (propostas.perfis + staff_roles label)
+select t.ok('emissor reads 0 rows from alunos.alunos', (select count(*) from alunos.alunos) = 0);
+select t.ok('emissor reads 0 rows from alunos.dados_pessoais', (select count(*) from alunos.dados_pessoais) = 0);
+select t.ok('emissor reads 0 health rows', (select count(*) from alunos.aluno_saude) = 0);
 select t.ok('emissor role grants nothing in the new model', not public.is_staff());
 reset role;
+
+select t.as_user('pcoord@test.local');   -- Propostas-only coordenacao, no staff_roles row
+select t.ok('Propostas-only coordenacao reads 0 rows from alunos.alunos', (select count(*) from alunos.alunos) = 0);
+select t.ok('Propostas-only coordenacao reads 0 rows from alunos.dados_pessoais (no CPF/address)', (select count(*) from alunos.dados_pessoais) = 0);
+select t.ok('Propostas-only coordenacao is not staff in the new model', not public.is_staff());
+reset role;
+
+select t.as_user('padmin@test.local');   -- Propostas-only admin, no staff_roles row
+select t.ok('Propostas-only admin reads 0 rows from alunos.alunos', (select count(*) from alunos.alunos) = 0);
+select t.ok('Propostas-only admin reads 0 rows from alunos.dados_pessoais', (select count(*) from alunos.dados_pessoais) = 0);
+select t.ok('Propostas-only admin cannot read the audit log', (select count(*) from alunos.auditoria) = 0);
+select t.ok('Propostas-only admin cannot read staff_roles', (select count(*) from public.staff_roles) = 0);
+reset role;
+
+select t.as_user('mentoremissor@test.local');   -- mentor + emissor, no assignment
+select t.ok('mentor+emissor without an assignment sees no students', (select count(*) from alunos.alunos) = 0);
+reset role;
+
+-- the legacy policies are really gone
+select t.ok('legacy policy alunos_leitura was dropped', not exists (
+  select 1 from pg_policies where schemaname = 'alunos' and tablename = 'alunos' and policyname = 'alunos_leitura'));
+select t.ok('legacy policy alunos_dp_leitura was dropped', not exists (
+  select 1 from pg_policies where schemaname = 'alunos' and tablename = 'dados_pessoais' and policyname = 'alunos_dp_leitura'));
+select t.ok('no alunos policy references the Propostas helpers', not exists (
+  select 1 from pg_policies where schemaname = 'alunos'
+     and coalesce(qual, '') || coalesce(with_check, '') ~ '(eh_equipe|eh_coordenacao_ou_admin|papel_atual|e_admin|e_coordenacao)'));
+
+-- Data API exposure: exact value (migration 9)
+select t.ok('pgrst.db_schemas is exactly the approved value', exists (
+  select 1 from pg_roles r, unnest(r.rolconfig) c
+   where r.rolname = 'authenticator'
+     and c = 'pgrst.db_schemas=public, graphql_public, propostas, selecao, alunos'));
 
 -- ------------------------------------------------------------------ admin
 select t.as_user('adm@test.local');

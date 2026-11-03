@@ -8,6 +8,8 @@ do $$ begin
   if not exists (select 1 from pg_roles where rolname = 'authenticator') then create role authenticator login noinherit; end if;
 end $$;
 grant anon, authenticated, service_role to authenticator;
+-- live value on the real project before migration 9 (captured read-only)
+alter role authenticator set pgrst.db_schemas = 'public, graphql_public, propostas, selecao';
 
 create extension if not exists pgcrypto with schema public;
 create schema if not exists extensions;

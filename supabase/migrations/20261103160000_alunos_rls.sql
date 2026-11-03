@@ -12,11 +12,13 @@
 --   matriculas, ciclo_status  read: same people who can read the student | write: coordenacao, secretaria
 --   aluno_status_historico    read: coordenacao, secretaria | nobody writes directly
 --
--- Legacy policies alunos_leitura / alunos_dp_leitura (used by the Processo Seletivo side)
--- are intentionally LEFT in place: policies are permissive (OR), so nothing that works
--- today breaks. Retire them later with:
---   drop policy alunos_leitura on alunos.alunos;
---   drop policy alunos_dp_leitura on alunos.dados_pessoais;
+-- The legacy policies alunos_leitura / alunos_dp_leitura are DROPPED below. They depend on
+-- selecao.eh_equipe() / selecao.eh_coordenacao_ou_admin(), which are true for anyone with a
+-- propostas.perfis row (including emissores). Once the `alunos` schema is exposed in the Data API
+-- that would let emissores read every student and Propostas coordenacao/admin read CPF and
+-- addresses. From here on only the new helpers (has_any_role, can_view_aluno, my_aluno_id) grant
+-- access. Safe: nothing could reach those policies through the API before (schema not exposed),
+-- and selecao.registrar_checkin is security definer, so it is not affected by RLS.
 
 -- ---------------------------------------------------------------- helpers
 
@@ -185,6 +187,10 @@ create trigger trg_dados_pessoais_guard before insert or update on alunos.dados_
   for each row execute function alunos.tg_guard_dados_pessoais();
 
 -- ---------------------------------------------------------------- policies
+
+-- legacy policies (see header)
+drop policy if exists "alunos_leitura" on alunos.alunos;
+drop policy if exists "alunos_dp_leitura" on alunos.dados_pessoais;
 
 -- alunos.alunos
 drop policy if exists "alunos_select" on alunos.alunos;
