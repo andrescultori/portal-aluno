@@ -27,3 +27,14 @@ dist-ssr
 # Supabase CLI: estado local do `supabase link` e branches
 supabase/.temp
 supabase/.branches
+
+# Student data must live only in Supabase (DB + private Storage), never in the repo.
+# Source spreadsheets, exports and import reports stay OUTSIDE the repo (IMPORT_DIR)
+# or in these ignored folders.
+data/
+import-output/
+*.xlsx
+*.xls
+*.csv
+.env.*
+!.env.example
