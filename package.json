@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:import": "tsx --test scripts/import-geral/core.test.ts",
+    "test:import": "tsx --test scripts/import-geral/core.test.ts scripts/import-geral/sql.test.ts",
     "import:dry-run": "tsx scripts/import-geral/cli.ts"
   },
   "dependencies": {

@@ -2,6 +2,9 @@
 // and cross-checks it against hashed keys from the database. It NEVER writes to the database and has no --apply.
 //
 //   npx tsx scripts/import-geral/cli.ts --file "<path to LISTA_GERAL_ALUNOS.xlsx>" --out "<report folder>" [--db-keys keys.json]
+//        [--ajustes ajustes.json]  manual corrections decided by the owner, e.g. {"<RA>": {"casa": "Casa Amarela"}}
+//        [--emit-sql]              also writes importar-lista-geral.sql (the one-time import, to be run by the owner)
+//        [--sem-vincular]          with --emit-sql: do NOT link students to their admission candidates
 //
 // Both the spreadsheet and the report folder MUST be outside the repository (they hold personal data).
 // The console only prints counts; reports identify rows by spreadsheet row number and RA, never by name.
@@ -11,9 +14,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import readXlsxFile from 'read-excel-file/node'
 import {
-  conferirComBanco, planejar,
+  CASAS, conferirComBanco, planejar,
   type Cell, type ChavesBanco, type Fontes, type Linha, type Problema,
 } from './core.ts'
+import { gerarSql } from './sql.ts'
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const dentroDoRepo = (p: string) => {
@@ -69,6 +73,21 @@ const fontes: Fontes = {
   saude: lerAba(abas, 'SAÚDE'),
 }
 const resultado = planejar(fontes)
+
+// Manual corrections by RA (kept outside the repo with the spreadsheet). Only the house can be set for now.
+const ajustesArq = argumento('ajustes')
+if (ajustesArq) {
+  const ajustes = JSON.parse(readFileSync(ajustesArq, 'utf8')) as Record<string, { casa?: string }>
+  for (const [ra, a] of Object.entries(ajustes)) {
+    const p = resultado.planos.find((x) => x.ra === ra)
+    if (!p) { console.error(`Ajuste para um RA que não existe na planilha: ${ra}`); process.exit(2) }
+    if (a.casa !== undefined) {
+      if (!CASAS.includes(a.casa)) { console.error(`Casa inválida no ajuste do RA ${ra}`); process.exit(2) }
+      p.aluno.casa = a.casa
+      resultado.problemas.push({ severidade: 'info', codigo: 'ajuste_manual_aplicado', aba: 'GERAL', linha: p.linha, ra, campo: 'CASA' })
+    }
+  }
+}
 // Keys file: arrays of 12-hex hash prefixes straight from the database, plus md5 checksums to prove the file is intact.
 function lerChaves(arquivoChaves: string): ChavesBanco {
   const bruto = JSON.parse(readFileSync(arquivoChaves, 'utf8')) as {
@@ -145,4 +164,10 @@ console.log(`alunos planejados: ${resultado.planos.length} · matrículas: ${som
 console.log(`erros: ${erros} · avisos: ${todos.filter((p) => p.severidade === 'aviso').length} · info: ${todos.filter((p) => p.severidade === 'info').length}`)
 for (const [chave, itens] of grupos) console.log(`  ${chave.replace('|', ' ')}: ${itens.length}`)
 if (banco) console.log(`banco: sem candidato ${banco.semCandidato} · candidato único ${banco.candidatoUnico} · conflitos ${banco.conflitoEntreCandidatos} · já existem ${banco.jaExisteEmAlunos} · com login ${banco.comLoginAluno}`)
+if (argumento('emit-sql') !== undefined || process.argv.includes('--emit-sql')) {
+  if (erros > 0) { console.error('Há erros bloqueantes: o SQL não foi gerado.'); process.exit(1) }
+  const sql = gerarSql(resultado.planos, resultado.semestres, { vincularCandidatos: !process.argv.includes('--sem-vincular') })
+  writeFileSync(path.join(saida, 'importar-lista-geral.sql'), sql, { mode: 0o600 })
+  console.log(`SQL da importação gerado: ${path.join(saida, 'importar-lista-geral.sql')} (${Math.round(sql.length / 1024)} KB, contém dados pessoais)`)
+}
 console.log(`relatório gravado em ${saida} (fora do repositório)`)

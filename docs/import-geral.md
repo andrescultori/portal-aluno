@@ -67,3 +67,23 @@ aprovação): fazer `registrar_checkin` preservar valores já existentes (`coale
 os 19 logins de aluno do portal casam com alunos da planilha (a presença passa a funcionar depois da importação).
 Avisos para conferência humana: 3 linhas com nome aproximado (mesmo aluno), 2 matrículas duplicadas (dois ciclos no mesmo
 semestre), 1 RA ausente, 1 CPF com dígito verificador inválido, 1 candidato com RA divergente, 8 alunos sem nenhuma linha em `SEMESTRES` (matrícula do semestre de ingresso derivada da `TURMA`).
+
+## Gerando o SQL da importação (rodado pelo dono, nunca por mim)
+
+```
+npx tsx scripts/import-geral/cli.ts --file "<LISTA_GERAL_ALUNOS.xlsx>" --out "<pasta FORA do repositório>" \
+  --db-keys "<chaves-hash.json>" --ajustes "<ajustes.json>" --emit-sql [--sem-vincular]
+```
+
+Grava `importar-lista-geral.sql` na pasta de saída (permissão 600; **contém dados pessoais**, por isso o CLI recusa pastas dentro do repositório).
+Para colar no SQL Editor do Supabase e executar uma vez:
+
+- um único bloco `DO` = uma transação: qualquer problema desfaz tudo e a mensagem diz o motivo;
+- só `INSERT ... ON CONFLICT DO NOTHING`: nunca altera nem apaga linhas existentes; rodar de novo não duplica;
+- guardas antes de gravar: tabelas esperadas existem, nenhuma chave de aluno aponta para dois candidatos, nenhum candidato serve a dois alunos;
+- conferência no fim: as contagens por tabela têm que bater com o plano (senão aborta);
+- o histórico de status recebe o motivo "Importação da LISTA GERAL";
+- `v_vincular` (início do bloco): `true` liga cada aluno ao seu candidato (evita falha por e-mail duplicado no check-in do Make, mas o risco R1 acima passa a valer); `false` não liga.
+- `--ajustes`: correções manuais por RA decididas pelo dono (hoje só `casa`), guardadas fora do repositório junto com a planilha.
+
+Não escreve em `selecao.*` nem `propostas.*` e não chama `registrar_checkin`. Testado em um Postgres local com a planilha real e com dados falsos (aborto/rollback em caso de conflito, segunda execução sem efeito).
