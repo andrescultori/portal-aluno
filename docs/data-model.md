@@ -58,9 +58,46 @@ SQL Editor / service role have no JWT, so the actor columns are NULL (the change
 
 ## 5. Phase 1B — evaluation module (in progress)
 
-Added migration by migration; each section below is filled in when its migration is written.
+Added migration by migration; each part is filled in when its migration is written.
 
-- Migration 10 — audit of roles and staff ✅ (this document, §4).
-- Migration 11 — question bank, evaluations, windows, comments (planned).
+### 5.1 Migration 10 — audit of roles and staff ✅
+See §4.
+
+### 5.2 Migration 11 — question bank, evaluations, windows, comments
+
+**Question bank (versioned, reference data).** `avaliacao_modelos` (categoria `tutoria`|`mentoria`, `versao`, `ativo`,
+plus the wording of the two free-text prompts) → `avaliacao_grupos` → `avaliacao_perguntas`. `avaliacao_escala` holds the
+five labels (1 *Não posso/não sei responder*, 2 *Insatisfatório*, 3 *Regular*, 4 *Bom*, 5 *Excelente*); the points live
+in one place, `alunos.pontos(valor)`: 1 → excluded (null), 2→4, 3→6, 4→8, 5→10. Seeded: Tutoria v1 (Teoria 4 + Prática 4),
+Mentoria v1 (Encontro 2, Autocuidado físico 3, Práticas espirituais 2, Vida em comunidade 4). One active model per
+category (partial unique index). **A model that already has evaluations is frozen** (trigger, SQLSTATE 55006):
+coordenação/admin create a new version with `alunos.nova_versao_modelo(categoria)` (clones groups + questions, inactive),
+edit it freely while it has no evaluations, then `alunos.ativar_modelo(id)`. Old evaluations keep their model.
+
+**Evaluations.** `avaliacoes` (one per `semestre + aluno + avaliador + categoria`; `categoria` is checked against the
+model by a composite FK, so a new model version never opens a second slot), `avaliacao_respostas` (valor 1..5, the
+question must belong to the evaluation's model), `avaliacao_comentarios` (`observacoes`, `desenvolvimento` — separate
+table so `select *` on the evaluation can never leak them). Status `rascunho` → `enviada` only through
+`alunos.enviar_avaliacao(id)`: every question answered; any answer below 4 (*Bom*), **including 1**, requires a non-blank
+`observacoes`. Evaluators additionally need an open window and the assignment; coordenação/admin (and calls without a
+JWT) skip those two checks but not the content rules. Coordenação/admin may edit after submit and reopen
+(`status = 'rascunho'`); evaluators cannot. Keys (semester, student, evaluator, model, category) never change.
+
+**Who may evaluate** (`alunos.pode_avaliar`): staff (not emissor-only) whose own `equipe` row is the evaluator and
+who is assigned in `aluno_tutores` for that semester and category — or, for Mentoria, has the `lider_casa` role and
+`equipe_casas` contains the student's house. **Windows** (`avaliacao_janelas`, per semester + category): `abre_em`,
+`fecha_em`, `liberada_em`; no dates are hard-coded; drafts and submission both require an open window (coordenação/admin
+override). `alunos.semestre_liberado(semestre)` is true only when the semester has windows and **every** one has
+`liberada_em <= now()`.
+
+**Visibility (RLS).** Evaluator: own evaluations, answers and comments only. Coordenação/admin: everything.
+Student, secretaria, financeiro, emissor-only, anon: no raw rows at all (students get only their own aggregates after
+release, through the functions of migration 13). Locked rows are filtered by RLS (0 rows affected, no error); the
+triggers raise explicit errors as a second line of defence. `alunos.meus_alunos_avaliar(semestre)` returns the
+evaluator's own list (explicit assignments + house-leader derivation) with status and progress.
+
+**Audit.** Every table of the module has `trg_audit`; `registro_id` is `aluno_id`, else `id`, else `avaliacao_id`,
+else `equipe_id:casa_id`, else `semestre_id:categoria`.
+
 - Migration 12 — activities, final project, attendance (planned).
 - Migration 13 — computed grades (planned).

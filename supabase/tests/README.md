@@ -12,10 +12,11 @@ Files:
 
 - `00_supabase_stub.sql` — roles, `auth.uid()` / `auth.jwt()`, storage stub.
 - `10_baseline_existing_schema.sql` — structure-only copy of the live schema (includes `selecao.registrar_checkin` verbatim).
-- `05_harness.sql` — shared helpers (`t.ok`, `t.throws`, `t.affected`, `t.as_user`) included by the newer test files.
+- `05_harness.sql` — shared helpers (`t.ok`, `t.runs`, `t.throws`, `t.throws_code`, `t.affected`, `t.as_user`) included by the newer test files.
 - `20_rls_tests.sql` — student record: acts as each role (student, tutor, house leader, financeiro, secretaria,
   coordenacao, admin, legacy Propostas profile, anon) and proves `selecao.registrar_checkin` still creates/updates the
   student under the new triggers. One transaction, rolled back.
 - `21_audit_roles_tests.sql` — migration 10: role/staff changes are audited.
+- `22_avaliacao_tests.sql` — migration 11: question bank, evaluations, windows, comments, visibility per role.
 
 Each test file runs in one transaction and rolls back.
