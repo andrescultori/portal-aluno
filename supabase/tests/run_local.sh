@@ -13,6 +13,7 @@ run() { $PSQL -v ON_ERROR_STOP=1 -q -d "$DB" -f "$1"; }
 
 run supabase/tests/00_supabase_stub.sql
 run supabase/tests/10_baseline_existing_schema.sql
+run supabase/tests/11_baseline_checkin_tables.sql
 for pass in 1 2; do
   for f in supabase/migrations/202611*.sql; do PGOPTIONS="-c client_min_messages=warning" run "$f"; done
   echo "migrations pass $pass: ok"

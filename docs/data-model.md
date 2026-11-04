@@ -58,9 +58,122 @@ SQL Editor / service role have no JWT, so the actor columns are NULL (the change
 
 ## 5. Phase 1B — evaluation module (in progress)
 
-Added migration by migration; each section below is filled in when its migration is written.
+Added migration by migration; each part is filled in when its migration is written.
 
-- Migration 10 — audit of roles and staff ✅ (this document, §4).
-- Migration 11 — question bank, evaluations, windows, comments (planned).
-- Migration 12 — activities, final project, attendance (planned).
-- Migration 13 — computed grades (planned).
+### 5.1 Migration 10 — audit of roles and staff ✅
+See §4.
+
+### 5.2 Migration 11 — question bank, evaluations, windows, comments
+
+**Question bank (versioned, reference data).** `avaliacao_modelos` (categoria `tutoria`|`mentoria`, `versao`, `ativo`,
+plus the wording of the two free-text prompts) → `avaliacao_grupos` → `avaliacao_perguntas`. `avaliacao_escala` holds the
+five labels (1 *Não posso/não sei responder*, 2 *Insatisfatório*, 3 *Regular*, 4 *Bom*, 5 *Excelente*); the points live
+in one place, `alunos.pontos(valor)`: 1 → excluded (null), 2→4, 3→6, 4→8, 5→10. Seeded: Tutoria v1 (Teoria 4 + Prática 4),
+Mentoria v1 (Encontro 2, Autocuidado físico 3, Práticas espirituais 2, Vida em comunidade 4). One active model per
+category (partial unique index). **A model that already has evaluations is frozen** (trigger, SQLSTATE 55006):
+coordenação/admin create a new version with `alunos.nova_versao_modelo(categoria)` (clones groups + questions, inactive),
+edit it freely while it has no evaluations, then `alunos.ativar_modelo(id)`. Old evaluations keep their model.
+
+**Evaluations.** `avaliacoes` (one per `semestre + aluno + avaliador + categoria`; `categoria` is checked against the
+model by a composite FK, so a new model version never opens a second slot), `avaliacao_respostas` (valor 1..5, the
+question must belong to the evaluation's model), `avaliacao_comentarios` (`observacoes`, `desenvolvimento` — separate
+table so `select *` on the evaluation can never leak them). Status `rascunho` → `enviada` only through
+`alunos.enviar_avaliacao(id)`: every question answered; any answer below 4 (*Bom*), **including 1**, requires a non-blank
+`observacoes`. Evaluators additionally need an open window and the assignment; coordenação/admin (and calls without a
+JWT) skip those two checks but not the content rules. Coordenação/admin may edit after submit and reopen
+(`status = 'rascunho'`); evaluators cannot. Keys (semester, student, evaluator, model, category) never change.
+
+**Who may evaluate** (`alunos.pode_avaliar`): staff (not emissor-only) whose own `equipe` row is the evaluator and
+who is assigned in `aluno_tutores` for that semester and category — or, for Mentoria, has the `lider_casa` role and
+`equipe_casas` contains the student's house. **Windows** (`avaliacao_janelas`, per semester + category): `abre_em`,
+`fecha_em`, `liberada_em`; no dates are hard-coded; drafts and submission both require an open window (coordenação/admin
+override). `alunos.semestre_liberado(semestre)` is true only when the semester has windows and **every** one has
+`liberada_em <= now()`.
+
+**Visibility (RLS).** Evaluator: own evaluations, answers and comments only. Coordenação/admin: everything.
+Student, secretaria, financeiro, emissor-only, anon: no raw rows at all (students get only their own aggregates after
+release, through the functions of migration 13). Locked rows are filtered by RLS (0 rows affected, no error); the
+triggers raise explicit errors as a second line of defence. `alunos.meus_alunos_avaliar(semestre)` returns the
+evaluator's own list (explicit assignments + house-leader derivation) with status and progress.
+
+**Audit.** Every table of the module has `trg_audit`; `registro_id` is `aluno_id`, else `id`, else `avaliacao_id`,
+else `equipe_id:casa_id`, else `semestre_id:categoria`.
+
+### 5.3 Migration 12 — activities, final project, attendance
+
+**Activities.** `atividades` (weekly class topics per semester; titles typed by coordenação/admin) and
+`atividade_notas` (`ativ` 0..9, `quiz` 0..1, both nullable; `final` is a generated column = `ativ + quiz`, **null when both
+are empty — null is never 0**; a missing component counts as 0 once the other is entered). `Atividades` =
+`avg(final)` over the activities the student has a grade for (`alunos._atividades_calc`; also reports total/graded counts).
+
+**Final project.** `projeto_componentes(semestre_id, codigo, nome, peso)` — seeded for every new semester by a trigger with
+three components (`projeto`, `apresentacao`, `trabalho_escrito`) and **equal weights (TODO: owner to confirm the real
+weights)**; coordenação/admin edit them (UI, no code change). `projeto_notas` (0..10). `Projeto` = weighted mean of the
+components that have a grade, weights renormalised over those; the missing component codes are returned
+(`alunos._projeto_calc`); zero-weight components are ignored; no grades → null.
+
+**Who edits.** Grades (`atividade_notas`, `projeto_notas`): **admin and the student's tutor** (tutoria assignment of that
+semester); coordenação reads but cannot edit; secretaria/financeiro/student read nothing. Every change is audited
+(`atualizado_por/em` are stamped; `registro_id` = student). `justificativas`: admin, coordenação, secretaria and the
+student's tutor. `dias_letivos`: staff read; admin/coordenação/secretaria edit.
+
+**Attendance (check-in tables and the Edge Function are untouched).** `public.attendance_records.aluno_id` points to
+`allowed_users(id)`, not `alunos.alunos`. `alunos.v_presenca_aluno` joins the two by e-mail (case-insensitive); it is not
+granted to API roles (security-definer functions read it). **How status is decided (read from
+`supabase/functions/checkin-presenca/index.ts`):** at check-in the function computes the status on the server from the
+student's class (`turmas.horario_inicio`, `horario_fim_presente`, `horario_fim_atraso`, all configurable per class): window
+opens 5 minutes before `horario_inicio`; `presente` if now ≤ `horario_fim_presente`, otherwise `atraso` until
+`horario_fim_atraso`; outside the window nothing is written. The stored status is frozen at check-in. The function never
+writes `falta`: **absent = no row** (a manual `falta` row also counts as absent).
+
+`Presença` (0..10) = `(present × 1 + late × 0.5) / (class days − justified absences) × 10`, unrounded
+(`alunos._presenca_calc`): class days = `dias_letivos` with `aula = true` up to a cut-off date (default: yesterday,
+America/Sao_Paulo, so today's class never counts as an absence; pass the semester end for a closed semester); a
+justification only reduces the denominator if the student did not check in that day; empty/fully justified denominator → null;
+a student who cannot be joined to a login → `vinculado = false` and null (never a fake 0). Class days are generated from
+`semestres.inicio/fim` by `alunos.gerar_dias_letivos(semestre)` (Mon–Fri) and holidays are edited with `aula = false`.
+`alunos.presenca_sem_vinculo()` lists active students with no login and student logins with no student record.
+
+**Access to the numbers.** The `_…_calc` functions are internal (service role only); the staff screens use the
+role-checked wrappers `presenca_aluno`, `atividades_aluno`, `projeto_aluno` (admin, coordenação, or the student's tutor).
+Migration 13 combines them and applies the release gate for students.
+
+### 5.4 Migration 13 — computed grades (all in SQL)
+
+Per `(aluno, semestre)`; components stay **unrounded**, only `tutoria`, `mentoria` and `final` are rounded
+(`round(numeric, 1)` = half away from zero = half up for positive values). Only **submitted** evaluations count.
+
+| Value | Rule |
+|---|---|
+| `teoria`, `pratica` | mean over the 4 questions of the group of (mean over evaluators of points, valor 1 ignored) |
+| `atividades`, `projeto`, `presenca` | migration 12 |
+| `tutoria` | `round(avg of the non-null, non-zero values among [teoria, pratica, atividades, projeto, presenca], 1)` |
+| `mentoria` | `round(mean of the question means of the Mentoria model, 1)` (valor 1 ignored at both levels) |
+| `final` | `round(avg of the non-null, non-zero values among [tutoria, mentoria], 1)` — on the **already rounded** values |
+| `conceito` | `alunos.conceitos` (lower bounds 0 / 5 / 7 / 9 = Insatisfatório / Regular / Bom / Excelente; editable) |
+| `aprovado` | `final >= alunos.notas_config.aprovacao` (6.0, editable). No recovery. |
+
+The pure formulas are separate functions so the workbook case can be tested directly: `alunos.calc_tutoria(...)`,
+`alunos.calc_final(...)`, `alunos.conceito_de(...)`, `alunos.aprovado_de(...)`. **Workbook parity (semester 2024-1):**
+Teoria 9, Prática 8.5, Atividades 9.12, Projeto 8.5, Presença 8.7 → Tutoria 8.8; Mentoria 7.3 → Final 8.1 (averaging the
+unrounded values would give 8.0). Extra cases tested: a 0/null component excluded, no Mentoria, 5.9 / 6.0 boundary,
+half-up on x.x5 values, and an end-to-end run through real evaluations, activities, project grades and check-ins.
+
+**Partial results.** `completo` is false and `pendencias` (jsonb) lists what is missing: `tutoria_sem_avaliacoes`,
+`tutoria_avaliadores_faltando {enviadas, esperados, faltando}`, the same for `mentoria_*`, `atividades_nao_cadastradas`,
+`atividades_sem_notas`, `atividades_parcial {com_nota, total}`, `projeto_componentes_faltando {faltando[]}`,
+`presenca_sem_vinculo`, `presenca_indisponivel`. A partial `final` is never definitive. Expected evaluators = explicit
+`aluno_tutores` assignments (+ for Mentoria, the active house leaders with the `lider_casa` role).
+
+**Cycle averages.** `media_basico` / `media_avancado` = mean of the semester finals of the semesters whose enrolment
+(`matriculas.ciclo_id`) is in that cycle; `media_final` = mean of **all** semester finals; each rounded to 1 decimal; the
+number of incomplete semesters is returned so screens can warn. *(Open point: if the workbook defines Média final as the
+mean of the two cycle averages, change `_medias_ciclo_calc`; the two agree when both cycles have the same number of semesters.)*
+
+**Access.** `_perguntas_calc`, `_nota_semestre`, `_historico_calc`, `_medias_ciclo_calc` are internal (service role).
+Staff wrappers — admin and coordenação only: `notas_aluno`, `notas_semestre`, `perguntas_aluno`, `historico_aluno`,
+`medias_ciclo_aluno`. Tutors/mentors, secretaria, financeiro and students cannot call them. Student functions —
+`meu_desenvolvimento()`, `meu_desenvolvimento_perguntas(semestre)`, `minhas_medias_ciclo()` — take no student id, return
+only the logged-in student's rows, and only for semesters where `alunos.semestre_liberado` is true (every window of the
+semester released). They expose question means with the evaluator **count**, never an evaluator, a comment or the
+pending list. Before release they return nothing ("Resultados ainda não liberados" in the UI).
