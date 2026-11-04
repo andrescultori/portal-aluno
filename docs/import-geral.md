@@ -43,6 +43,9 @@ Não usadas: `STATUS`, `MATRICULADOS`, `LISTA EXTERNA*`, `ALUNOSDESATIVADOS`, `D
   avançado** e a outra linha é descartada e sinalizada (`matricula_duplicada_descartada`). O status do ciclo continua em `ciclo_status`.
 - Cenário → módulo: Básico (Universidade, Mercado de Trabalho, Missões Urbanas, Missões Transculturais), Avançado (Gestão de
   Projetos, Gestão de Carreira); Carreira/Convênio ficam sem módulo (o texto do cenário é guardado).
+- **Primeiro semestre:** o primeiro semestre de todo aluno é o semestre da `TURMA`. Se a aba `SEMESTRES` não tiver linha para ele, a
+  matrícula é **derivada** de `GERAL` (ciclo Básico — Convênio para quem tem plano Convênio; cenário/módulo ficam vazios porque não
+  estão em `GERAL`; plano = plano atual) e sinalizada (`matricula_derivada_da_turma`).
 - Semestres 2020-1 … 2026-2 são garantidos em `alunos.semestres` (sem datas, exceto os que a coordenação já cadastrou).
 
 ## Conferência com o banco (sem trocar dados pessoais)
@@ -59,8 +62,8 @@ aprovação): fazer `registrar_checkin` preservar valores já existentes (`coale
 (0 de 108).
 
 ## Resultado do ensaio na planilha real (agregado)
-98 alunos · 436 matrículas · 146 status de ciclo · 87 fichas de saúde · 14 semestres · **0 erros bloqueantes**.
+98 alunos · 444 matrículas (436 da planilha + 8 derivadas da `TURMA`) · 146 status de ciclo · 87 fichas de saúde · 14 semestres · **0 erros bloqueantes**.
 66 alunos casam com exatamente um candidato (nenhum conflito), 32 não são candidatos, 0 já existem em `alunos.alunos`,
 os 19 logins de aluno do portal casam com alunos da planilha (a presença passa a funcionar depois da importação).
 Avisos para conferência humana: 3 linhas com nome aproximado (mesmo aluno), 2 matrículas duplicadas (dois ciclos no mesmo
-semestre), 1 RA ausente, 1 CPF com dígito verificador inválido, 1 candidato com RA divergente, 8 alunos sem linha em `SEMESTRES`.
+semestre), 1 RA ausente, 1 CPF com dígito verificador inválido, 1 candidato com RA divergente, 8 alunos sem nenhuma linha em `SEMESTRES` (matrícula do semestre de ingresso derivada da `TURMA`).

@@ -343,7 +343,18 @@ export function planejar(fontes: Fontes, hoje = new Date()): Resultado {
     p.matriculas.push(nova)
   }
   for (const p of planos) {
-    if (p.matriculas.length === 0) add({ severidade: 'aviso', codigo: 'aluno_sem_matriculas', aba: 'GERAL', linha: p.linha, ra: p.ra })
+    // Rule from the owner: a student's FIRST semester is always the TURMA semester. When SEMESTRES has no row for it, derive one
+    // from GERAL. In the real data every first semester is Básico (Convênio students: Convênio); the scenario/module of that
+    // semester is not in GERAL, so it stays empty. The plan is the CURRENT one (it can differ from what was paid then): flagged.
+    const turma = p.aluno.semestre_ingresso
+    if (turma && !p.matriculas.some((m) => m.semestre === turma)) {
+      const ciclo = p.aluno.plano === 'Convênio' ? 'Convênio' : 'Básico'
+      semestresNecessarios.add(turma)
+      p.matriculas.push({
+        semestre: turma, ciclo, modulo_ordem: null, cenario: '', plano: p.aluno.plano ?? '', alimentacao: '', moradia: '', academia: '',
+      })
+      add({ severidade: 'info', codigo: 'matricula_derivada_da_turma', aba: 'GERAL', linha: p.linha, ra: p.ra, detalhe: `${turma}: ${ciclo}, plano ${p.aluno.plano ?? '-'}` })
+    }
     p.matriculas.sort((a, b) => a.semestre.localeCompare(b.semestre))
   }
 
