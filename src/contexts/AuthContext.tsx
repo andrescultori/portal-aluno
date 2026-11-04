@@ -8,6 +8,10 @@ type ProviderLogin = 'google' | 'azure'
 interface AuthContextValue {
   session: Session | null
   perfil: AllowedUser | null
+  // Papéis de equipe (public.staff_roles) do usuário logado: admin, coordenacao, tutor...
+  // A autorização de verdade é sempre do banco (RLS); isto só decide o que mostrar.
+  papeis: string[]
+  temPapel: (...papeis: string[]) => boolean
   loading: boolean
   naoAutorizado: boolean
   signInWithProvider: (provider: ProviderLogin, destino?: string) => Promise<void>
@@ -19,12 +23,14 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [perfil, setPerfil] = useState<AllowedUser | null>(null)
+  const [papeis, setPapeis] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [naoAutorizado, setNaoAutorizado] = useState(false)
 
   async function carregarPerfil(currentSession: Session | null) {
     if (!currentSession?.user?.email) {
       setPerfil(null)
+      setPapeis([])
       setNaoAutorizado(false)
       return
     }
@@ -38,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error || !data) {
       setPerfil(null)
+      setPapeis([])
       setNaoAutorizado(true)
       await supabase.auth.signOut()
       setSession(null)
@@ -46,6 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setPerfil(data as AllowedUser)
     setNaoAutorizado(false)
+
+    const { data: papeisData, error: papeisErro } = await supabase.rpc('current_roles')
+    setPapeis(papeisErro || !Array.isArray(papeisData) ? [] : (papeisData as string[]))
   }
 
   useEffect(() => {
@@ -82,12 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     await supabase.auth.signOut()
     setPerfil(null)
+    setPapeis([])
     setSession(null)
   }
 
+  const temPapel = (...desejados: string[]) => desejados.some((p) => papeis.includes(p))
+
   return (
     <AuthContext.Provider
-      value={{ session, perfil, loading, naoAutorizado, signInWithProvider, signOut }}
+      value={{ session, perfil, papeis, temPapel, loading, naoAutorizado, signInWithProvider, signOut }}
     >
       {children}
     </AuthContext.Provider>

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
-import { destinoAdmin, itensAdmin } from './adminMenu'
+import { useAuth } from '../../contexts/AuthContext'
+import { destinoAdmin, itensVisiveis } from './adminMenu'
 
 export default function AdminDashboard() {
+  const { temPapel } = useAuth()
   return (
     <div className="mx-auto max-w-5xl">
       <p className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">
@@ -13,7 +15,7 @@ export default function AdminDashboard() {
       </h1>
 
       <ul className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {itensAdmin.map((item) => (
+        {itensVisiveis(temPapel).map((item) => (
           <li key={item.rotulo} className="min-w-0">
             <Link
               to={destinoAdmin(item)}

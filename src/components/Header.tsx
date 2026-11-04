@@ -85,7 +85,7 @@ function MenuSuspenso({ grupo, ativo }: { grupo: GrupoNav; ativo: boolean }) {
 }
 
 export default function Header() {
-  const { perfil, signOut } = useAuth()
+  const { perfil, signOut, temPapel } = useAuth()
   const { pathname } = useLocation()
   const [menuAberto, setMenuAberto] = useState(false)
   const [sections, setSections] = useState<LinkSection[]>([])
@@ -126,6 +126,7 @@ export default function Header() {
     { to: '/presenca', label: 'Presença' },
     { to: '/calendario', label: 'Calendário' },
     { to: '/manual', label: 'Manual do Aluno' },
+    ...(temPapel('tutor', 'mentor', 'lider_casa') ? [{ to: '/avaliar', label: 'Avaliar alunos' }] : []),
   ]
 
   const grupos: GrupoNav[] = [
