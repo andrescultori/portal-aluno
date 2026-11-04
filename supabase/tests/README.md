@@ -24,3 +24,5 @@ Files:
 - `25_cobertura_tests.sql` — migration 14: coverage function (expected vs actual evaluators, no leaks, who can call it).
 
 Each test file runs in one transaction and rolls back.
+
+The import dry-run (`scripts/import-geral/`) has its own unit tests: `npm run test:import` (fake data only). See `docs/import-geral.md`.

@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:import": "tsx --test scripts/import-geral/core.test.ts",
+    "import:dry-run": "tsx scripts/import-geral/cli.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.0",
@@ -26,7 +28,9 @@
     "autoprefixer": "^10.6.1",
     "oxlint": "^1.81.0",
     "postcss": "^8.5.28",
+    "read-excel-file": "^9.3.14",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }
