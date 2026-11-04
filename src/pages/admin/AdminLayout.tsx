@@ -2,16 +2,18 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import Footer from '../../components/Footer'
-import { destinoAdmin, itensAdmin } from './adminMenu'
+import { useAuth } from '../../contexts/AuthContext'
+import { destinoAdmin, itensVisiveis } from './adminMenu'
 
 function Menu_({ aoNavegar }: { aoNavegar?: () => void }) {
   const { pathname, search } = useLocation()
   const abaAtual = new URLSearchParams(search).get('aba') ?? 'hero'
+  const { temPapel } = useAuth()
 
   return (
     <nav aria-label="Administração" className="flex flex-1 flex-col">
       <ul>
-        {itensAdmin.map((item) => {
+        {itensVisiveis(temPapel).map((item) => {
           const ativo = item.aba
             ? pathname === item.caminho &&
               (abaAtual === item.aba || !!item.abasExtras?.includes(abaAtual))

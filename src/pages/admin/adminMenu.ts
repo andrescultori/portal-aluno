@@ -6,11 +6,19 @@ export interface ItemAdmin {
   aba?: string
   // Outras abas que também deixam o item ativo no menu lateral.
   abasExtras?: string[]
+  // Papéis de equipe (staff_roles) que enxergam o item. Sem isto, todo usuário de equipe vê.
+  papeis?: string[]
 }
 
 // Fonte única dos itens: usada pela sidebar (AdminLayout) e pelos cartões da
 // página inicial do Admin, que no celular é o jeito mais direto de navegar.
 export const itensAdmin: ItemAdmin[] = [
+  {
+    rotulo: 'Avaliações',
+    descricao: 'Semestre, atribuição de tutores e mentores, janelas e liberação dos resultados.',
+    caminho: '/admin/avaliacoes',
+    papeis: ['admin', 'coordenacao'],
+  },
   {
     rotulo: 'Relatório de presença',
     descricao: 'Presentes, atrasos e faltas por turma e período.',
@@ -54,4 +62,8 @@ export const itensAdmin: ItemAdmin[] = [
 
 export function destinoAdmin(item: ItemAdmin) {
   return item.aba ? `${item.caminho}?aba=${item.aba}` : item.caminho
+}
+
+export function itensVisiveis(temPapel: (...papeis: string[]) => boolean) {
+  return itensAdmin.filter((item) => !item.papeis || temPapel(...item.papeis))
 }

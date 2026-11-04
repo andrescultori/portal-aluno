@@ -17,6 +17,7 @@ import AdminTurmas from './pages/admin/AdminTurmas'
 import AdminConteudo from './pages/admin/AdminConteudo'
 import AdminRelatorio from './pages/admin/AdminRelatorio'
 import AdminAvisos from './pages/admin/AdminAvisos'
+import AdminAvaliacoes from './pages/admin/AdminAvaliacoes'
 
 export default function App() {
   return (
@@ -96,6 +97,14 @@ export default function App() {
             <Route path="conteudo" element={<AdminConteudo />} />
             <Route path="relatorio" element={<AdminRelatorio />} />
             <Route path="avisos" element={<AdminAvisos />} />
+            <Route
+              path="avaliacoes"
+              element={
+                <ProtectedRoute papeis={['admin', 'coordenacao']}>
+                  <AdminAvaliacoes />
+                </ProtectedRoute>
+              }
+            />
           </Route>
 
           <Route path="*" element={<NotFound />} />
