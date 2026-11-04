@@ -99,5 +99,43 @@ evaluator's own list (explicit assignments + house-leader derivation) with statu
 **Audit.** Every table of the module has `trg_audit`; `registro_id` is `aluno_id`, else `id`, else `avaliacao_id`,
 else `equipe_id:casa_id`, else `semestre_id:categoria`.
 
-- Migration 12 — activities, final project, attendance (planned).
+### 5.3 Migration 12 — activities, final project, attendance
+
+**Activities.** `atividades` (weekly class topics per semester; titles typed by coordenação/admin) and
+`atividade_notas` (`ativ` 0..9, `quiz` 0..1, both nullable; `final` is a generated column = `ativ + quiz`, **null when both
+are empty — null is never 0**; a missing component counts as 0 once the other is entered). `Atividades` =
+`avg(final)` over the activities the student has a grade for (`alunos._atividades_calc`; also reports total/graded counts).
+
+**Final project.** `projeto_componentes(semestre_id, codigo, nome, peso)` — seeded for every new semester by a trigger with
+three components (`projeto`, `apresentacao`, `trabalho_escrito`) and **equal weights (TODO: owner to confirm the real
+weights)**; coordenação/admin edit them (UI, no code change). `projeto_notas` (0..10). `Projeto` = weighted mean of the
+components that have a grade, weights renormalised over those; the missing component codes are returned
+(`alunos._projeto_calc`); zero-weight components are ignored; no grades → null.
+
+**Who edits.** Grades (`atividade_notas`, `projeto_notas`): **admin and the student's tutor** (tutoria assignment of that
+semester); coordenação reads but cannot edit; secretaria/financeiro/student read nothing. Every change is audited
+(`atualizado_por/em` are stamped; `registro_id` = student). `justificativas`: admin, coordenação, secretaria and the
+student's tutor. `dias_letivos`: staff read; admin/coordenação/secretaria edit.
+
+**Attendance (check-in tables and the Edge Function are untouched).** `public.attendance_records.aluno_id` points to
+`allowed_users(id)`, not `alunos.alunos`. `alunos.v_presenca_aluno` joins the two by e-mail (case-insensitive); it is not
+granted to API roles (security-definer functions read it). **How status is decided (read from
+`supabase/functions/checkin-presenca/index.ts`):** at check-in the function computes the status on the server from the
+student's class (`turmas.horario_inicio`, `horario_fim_presente`, `horario_fim_atraso`, all configurable per class): window
+opens 5 minutes before `horario_inicio`; `presente` if now ≤ `horario_fim_presente`, otherwise `atraso` until
+`horario_fim_atraso`; outside the window nothing is written. The stored status is frozen at check-in. The function never
+writes `falta`: **absent = no row** (a manual `falta` row also counts as absent).
+
+`Presença` (0..10) = `(present × 1 + late × 0.5) / (class days − justified absences) × 10`, unrounded
+(`alunos._presenca_calc`): class days = `dias_letivos` with `aula = true` up to a cut-off date (default: yesterday,
+America/Sao_Paulo, so today's class never counts as an absence; pass the semester end for a closed semester); a
+justification only reduces the denominator if the student did not check in that day; empty/fully justified denominator → null;
+a student who cannot be joined to a login → `vinculado = false` and null (never a fake 0). Class days are generated from
+`semestres.inicio/fim` by `alunos.gerar_dias_letivos(semestre)` (Mon–Fri) and holidays are edited with `aula = false`.
+`alunos.presenca_sem_vinculo()` lists active students with no login and student logins with no student record.
+
+**Access to the numbers.** The `_…_calc` functions are internal (service role only); the staff screens use the
+role-checked wrappers `presenca_aluno`, `atividades_aluno`, `projeto_aluno` (admin, coordenação, or the student's tutor).
+Migration 13 combines them and applies the release gate for students.
+
 - Migration 13 — computed grades (planned).
