@@ -20,5 +20,6 @@ Files:
 - `21_audit_roles_tests.sql` — migration 10: role/staff changes are audited.
 - `22_avaliacao_tests.sql` — migration 11: question bank, evaluations, windows, comments, visibility per role.
 - `23_notas_presenca_tests.sql` — migration 12: activities, final project, class days, justifications, attendance.
+- `24_notas_calculadas_tests.sql` — migration 13: workbook parity (Tutoria 8.8 / Final 8.1), edge cases, end-to-end grades, release gating.
 
 Each test file runs in one transaction and rolls back.

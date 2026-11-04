@@ -138,4 +138,42 @@ a student who cannot be joined to a login → `vinculado = false` and null (neve
 role-checked wrappers `presenca_aluno`, `atividades_aluno`, `projeto_aluno` (admin, coordenação, or the student's tutor).
 Migration 13 combines them and applies the release gate for students.
 
-- Migration 13 — computed grades (planned).
+### 5.4 Migration 13 — computed grades (all in SQL)
+
+Per `(aluno, semestre)`; components stay **unrounded**, only `tutoria`, `mentoria` and `final` are rounded
+(`round(numeric, 1)` = half away from zero = half up for positive values). Only **submitted** evaluations count.
+
+| Value | Rule |
+|---|---|
+| `teoria`, `pratica` | mean over the 4 questions of the group of (mean over evaluators of points, valor 1 ignored) |
+| `atividades`, `projeto`, `presenca` | migration 12 |
+| `tutoria` | `round(avg of the non-null, non-zero values among [teoria, pratica, atividades, projeto, presenca], 1)` |
+| `mentoria` | `round(mean of the question means of the Mentoria model, 1)` (valor 1 ignored at both levels) |
+| `final` | `round(avg of the non-null, non-zero values among [tutoria, mentoria], 1)` — on the **already rounded** values |
+| `conceito` | `alunos.conceitos` (lower bounds 0 / 5 / 7 / 9 = Insatisfatório / Regular / Bom / Excelente; editable) |
+| `aprovado` | `final >= alunos.notas_config.aprovacao` (6.0, editable). No recovery. |
+
+The pure formulas are separate functions so the workbook case can be tested directly: `alunos.calc_tutoria(...)`,
+`alunos.calc_final(...)`, `alunos.conceito_de(...)`, `alunos.aprovado_de(...)`. **Workbook parity (semester 2024-1):**
+Teoria 9, Prática 8.5, Atividades 9.12, Projeto 8.5, Presença 8.7 → Tutoria 8.8; Mentoria 7.3 → Final 8.1 (averaging the
+unrounded values would give 8.0). Extra cases tested: a 0/null component excluded, no Mentoria, 5.9 / 6.0 boundary,
+half-up on x.x5 values, and an end-to-end run through real evaluations, activities, project grades and check-ins.
+
+**Partial results.** `completo` is false and `pendencias` (jsonb) lists what is missing: `tutoria_sem_avaliacoes`,
+`tutoria_avaliadores_faltando {enviadas, esperados, faltando}`, the same for `mentoria_*`, `atividades_nao_cadastradas`,
+`atividades_sem_notas`, `atividades_parcial {com_nota, total}`, `projeto_componentes_faltando {faltando[]}`,
+`presenca_sem_vinculo`, `presenca_indisponivel`. A partial `final` is never definitive. Expected evaluators = explicit
+`aluno_tutores` assignments (+ for Mentoria, the active house leaders with the `lider_casa` role).
+
+**Cycle averages.** `media_basico` / `media_avancado` = mean of the semester finals of the semesters whose enrolment
+(`matriculas.ciclo_id`) is in that cycle; `media_final` = mean of **all** semester finals; each rounded to 1 decimal; the
+number of incomplete semesters is returned so screens can warn. *(Open point: if the workbook defines Média final as the
+mean of the two cycle averages, change `_medias_ciclo_calc`; the two agree when both cycles have the same number of semesters.)*
+
+**Access.** `_perguntas_calc`, `_nota_semestre`, `_historico_calc`, `_medias_ciclo_calc` are internal (service role).
+Staff wrappers — admin and coordenação only: `notas_aluno`, `notas_semestre`, `perguntas_aluno`, `historico_aluno`,
+`medias_ciclo_aluno`. Tutors/mentors, secretaria, financeiro and students cannot call them. Student functions —
+`meu_desenvolvimento()`, `meu_desenvolvimento_perguntas(semestre)`, `minhas_medias_ciclo()` — take no student id, return
+only the logged-in student's rows, and only for semesters where `alunos.semestre_liberado` is true (every window of the
+semester released). They expose question means with the evaluator **count**, never an evaluator, a comment or the
+pending list. Before release they return nothing ("Resultados ainda não liberados" in the UI).
