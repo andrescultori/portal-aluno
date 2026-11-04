@@ -43,6 +43,9 @@ Não usadas: `STATUS`, `MATRICULADOS`, `LISTA EXTERNA*`, `ALUNOSDESATIVADOS`, `D
   avançado** e a outra linha é descartada e sinalizada (`matricula_duplicada_descartada`). O status do ciclo continua em `ciclo_status`.
 - Cenário → módulo: Básico (Universidade, Mercado de Trabalho, Missões Urbanas, Missões Transculturais), Avançado (Gestão de
   Projetos, Gestão de Carreira); Carreira/Convênio ficam sem módulo (o texto do cenário é guardado).
+- **Primeiro semestre:** o primeiro semestre de todo aluno é o semestre da `TURMA`. Se a aba `SEMESTRES` não tiver linha para ele, a
+  matrícula é **derivada** de `GERAL` (ciclo Básico — Convênio para quem tem plano Convênio; cenário/módulo ficam vazios porque não
+  estão em `GERAL`; plano = plano atual) e sinalizada (`matricula_derivada_da_turma`).
 - Semestres 2020-1 … 2026-2 são garantidos em `alunos.semestres` (sem datas, exceto os que a coordenação já cadastrou).
 
 ## Conferência com o banco (sem trocar dados pessoais)
@@ -59,8 +62,28 @@ aprovação): fazer `registrar_checkin` preservar valores já existentes (`coale
 (0 de 108).
 
 ## Resultado do ensaio na planilha real (agregado)
-98 alunos · 436 matrículas · 146 status de ciclo · 87 fichas de saúde · 14 semestres · **0 erros bloqueantes**.
+98 alunos · 444 matrículas (436 da planilha + 8 derivadas da `TURMA`) · 146 status de ciclo · 87 fichas de saúde · 14 semestres · **0 erros bloqueantes**.
 66 alunos casam com exatamente um candidato (nenhum conflito), 32 não são candidatos, 0 já existem em `alunos.alunos`,
 os 19 logins de aluno do portal casam com alunos da planilha (a presença passa a funcionar depois da importação).
 Avisos para conferência humana: 3 linhas com nome aproximado (mesmo aluno), 2 matrículas duplicadas (dois ciclos no mesmo
-semestre), 1 RA ausente, 1 CPF com dígito verificador inválido, 1 candidato com RA divergente, 8 alunos sem linha em `SEMESTRES`.
+semestre), 1 RA ausente, 1 CPF com dígito verificador inválido, 1 candidato com RA divergente, 8 alunos sem nenhuma linha em `SEMESTRES` (matrícula do semestre de ingresso derivada da `TURMA`).
+
+## Gerando o SQL da importação (rodado pelo dono, nunca por mim)
+
+```
+npx tsx scripts/import-geral/cli.ts --file "<LISTA_GERAL_ALUNOS.xlsx>" --out "<pasta FORA do repositório>" \
+  --db-keys "<chaves-hash.json>" --ajustes "<ajustes.json>" --emit-sql [--sem-vincular]
+```
+
+Grava `importar-lista-geral.sql` na pasta de saída (permissão 600; **contém dados pessoais**, por isso o CLI recusa pastas dentro do repositório).
+Para colar no SQL Editor do Supabase e executar uma vez:
+
+- um único bloco `DO` = uma transação: qualquer problema desfaz tudo e a mensagem diz o motivo;
+- só `INSERT ... ON CONFLICT DO NOTHING`: nunca altera nem apaga linhas existentes; rodar de novo não duplica;
+- guardas antes de gravar: tabelas esperadas existem, nenhuma chave de aluno aponta para dois candidatos, nenhum candidato serve a dois alunos;
+- conferência no fim: as contagens por tabela têm que bater com o plano (senão aborta);
+- o histórico de status recebe o motivo "Importação da LISTA GERAL";
+- `v_vincular` (início do bloco): `true` liga cada aluno ao seu candidato (evita falha por e-mail duplicado no check-in do Make, mas o risco R1 acima passa a valer); `false` não liga.
+- `--ajustes`: correções manuais por RA decididas pelo dono (hoje só `casa`), guardadas fora do repositório junto com a planilha.
+
+Não escreve em `selecao.*` nem `propostas.*` e não chama `registrar_checkin`. Testado em um Postgres local com a planilha real e com dados falsos (aborto/rollback em caso de conflito, segunda execução sem efeito).

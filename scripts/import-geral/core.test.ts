@@ -210,7 +210,8 @@ test('a typo between tabs is matched only when the near-match is clear, and is r
 })
 
 test('two cycles in the same semester: one enrolment is kept (the later cycle) and the other is reported', () => {
-  const r = planejar(fontes([aluno(1)], [
+  const turma2022 = { TURMA: '2022-1', 'INÍCIO': new Date('2022-01-01T00:00:00Z') }
+  const r = planejar(fontes([aluno(1, turma2022)], [
     { SEMESTRE: '2022-1', ALUNO: 'Aluno1 Silva', CICLO: 'Avançado', 'CENÁRIO': 'Gestão de Projetos', PLANOS: 'Completo', 'ALIMENTAÇÃO': 'S', MORADIA: 'S', ACADEMIA: 'S' },
     { SEMESTRE: '2022-1', ALUNO: 'Aluno1 Silva', CICLO: 'Básico', 'CENÁRIO': 'Universidade', PLANOS: 'Completo', 'ALIMENTAÇÃO': 'S', MORADIA: 'S', ACADEMIA: 'S' },
   ]))
@@ -219,9 +220,22 @@ test('two cycles in the same semester: one enrolment is kept (the later cycle) a
   assert.deepEqual(codigos(r, 'erro'), [])
   assert.ok(r.problemas.some((p) => p.codigo === 'matricula_duplicada_descartada' && p.detalhe?.includes('descartado Básico')))
   // and the other order gives the same result
-  const r2 = planejar(fontes([aluno(1)], [
+  const r2 = planejar(fontes([aluno(1, turma2022)], [
     { SEMESTRE: '2022-1', ALUNO: 'Aluno1 Silva', CICLO: 'Básico', 'CENÁRIO': 'Universidade', PLANOS: 'Completo', 'ALIMENTAÇÃO': 'S', MORADIA: 'S', ACADEMIA: 'S' },
     { SEMESTRE: '2022-1', ALUNO: 'Aluno1 Silva', CICLO: 'Avançado', 'CENÁRIO': 'Gestão de Projetos', PLANOS: 'Completo', 'ALIMENTAÇÃO': 'S', MORADIA: 'S', ACADEMIA: 'S' },
   ]))
   assert.equal(r2.planos[0].matriculas[0].ciclo, 'Avançado')
+})
+
+test('the first semester is always the TURMA semester: derived when SEMESTRES has no row for it', () => {
+  const r = planejar(fontes([
+    aluno(1, { TURMA: '2026-2', 'INÍCIO': new Date('2026-07-27T00:00:00Z'), PLANO: 'Completo' }),
+    aluno(2, { TURMA: '2023-1', 'INÍCIO': new Date('2023-01-01T00:00:00Z'), PLANO: 'Convênio', CICLO: 'Convênio' }),
+    aluno(3), // has its own 2024-1 row below: nothing is derived
+  ], [{ SEMESTRE: '2024-1', ALUNO: 'Aluno3 Silva', CICLO: 'Básico', 'CENÁRIO': 'Universidade', PLANOS: 'Completo', 'ALIMENTAÇÃO': 'S', MORADIA: 'S', ACADEMIA: 'S' }]))
+  assert.deepEqual(r.planos[0].matriculas.map((m) => [m.semestre, m.ciclo, m.modulo_ordem, m.plano]), [['2026-2', 'Básico', null, 'Completo']])
+  assert.deepEqual(r.planos[1].matriculas.map((m) => [m.semestre, m.ciclo]), [['2023-1', 'Convênio']])
+  assert.equal(r.planos[2].matriculas.length, 1)
+  assert.equal(r.problemas.filter((p) => p.codigo === 'matricula_derivada_da_turma').length, 2)
+  assert.ok(r.semestres.includes('2026-2') && r.semestres.includes('2023-1'))
 })
