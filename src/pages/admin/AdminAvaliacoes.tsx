@@ -10,6 +10,8 @@ import type {
   Semestre,
 } from '../../types/alunos'
 import { rotuloCategoria } from '../../types/alunos'
+import AvaliacoesJanelas from './AvaliacoesJanelas'
+import AvaliacoesCobertura from './AvaliacoesCobertura'
 
 const db = () => supabase.schema('alunos')
 
@@ -31,7 +33,7 @@ function nomeAluno(a: AlunoResumo) {
   return a.nome_exibicao || a.nome
 }
 
-type Aba = 'semestre' | 'atribuicoes'
+type Aba = 'semestre' | 'atribuicoes' | 'janelas' | 'cobertura'
 
 export default function AdminAvaliacoes() {
   const [aba, setAba] = useState<Aba>('semestre')
@@ -74,7 +76,7 @@ export default function AdminAvaliacoes() {
         Avaliações
       </h1>
       <p className="mt-2 max-w-3xl text-sm text-onyx-black">
-        Defina o semestre, quem avalia quem e (em breve) as janelas e a liberação dos resultados.
+        Defina o semestre, quem avalia quem, o período de avaliação e quando os alunos veem os resultados.
         Cada avaliador só vê os alunos que você atribuir aqui.
       </p>
 
@@ -89,6 +91,8 @@ export default function AdminAvaliacoes() {
           [
             ['semestre', 'Semestre'],
             ['atribuicoes', 'Atribuições'],
+            ['janelas', 'Períodos e liberação'],
+            ['cobertura', 'Quem já avaliou'],
           ] as [Aba, string][]
         ).map(([valor, rotulo]) => (
           <button
@@ -121,7 +125,9 @@ export default function AdminAvaliacoes() {
         ) : semestre ? (
           <>
             <SeletorSemestre semestres={semestres} valor={semestreId} aoEscolher={setSemestreId} />
-            <SecaoAtribuicoes semestre={semestre} />
+            {aba === 'atribuicoes' && <SecaoAtribuicoes semestre={semestre} />}
+            {aba === 'janelas' && <AvaliacoesJanelas semestre={semestre} />}
+            {aba === 'cobertura' && <AvaliacoesCobertura semestre={semestre} />}
           </>
         ) : (
           <p className="border border-gunmetal-gray/25 p-4 text-sm text-onyx-black">

@@ -103,3 +103,42 @@ export function traduzirErro(mensagem: string): string {
     return 'Não foi possível salvar: a avaliação está bloqueada (já enviada, fora do período ou sem atribuição).'
   return `Não foi possível concluir: ${mensagem}`
 }
+
+// Pendências devolvidas por alunos.notas_semestre / notas_aluno (jsonb) -> frase.
+export interface Pendencia {
+  codigo: string
+  enviadas?: number
+  esperados?: number
+  faltando?: number | string[]
+  com_nota?: number
+  total?: number
+}
+
+export function descreverPendencia(p: Pendencia): string {
+  switch (p.codigo) {
+    case 'tutoria_sem_avaliacoes':
+      return 'Tutoria: nenhuma avaliação enviada'
+    case 'tutoria_avaliadores_faltando':
+      return `Tutoria: ${p.enviadas} de ${p.esperados} avaliadores enviaram`
+    case 'mentoria_sem_avaliacoes':
+      return 'Mentoria: nenhuma avaliação enviada'
+    case 'mentoria_avaliadores_faltando':
+      return `Mentoria: ${p.enviadas} de ${p.esperados} avaliadores enviaram`
+    case 'atividades_nao_cadastradas':
+      return 'Atividades não cadastradas'
+    case 'atividades_sem_notas':
+      return 'Atividades sem notas'
+    case 'atividades_parcial':
+      return `Atividades: ${p.com_nota} de ${p.total} com nota`
+    case 'projeto_sem_componentes':
+      return 'Projeto sem componentes'
+    case 'projeto_componentes_faltando':
+      return `Projeto: falta ${Array.isArray(p.faltando) ? p.faltando.join(', ') : ''}`
+    case 'presenca_sem_vinculo':
+      return 'Presença: aluno sem login vinculado'
+    case 'presenca_indisponivel':
+      return 'Presença indisponível'
+    default:
+      return p.codigo
+  }
+}

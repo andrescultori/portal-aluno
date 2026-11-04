@@ -49,3 +49,26 @@ export function dataHoraLocal(iso: string): string {
   const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: FUSO })
   return `${dia}, ${hora}`
 }
+
+// <input type="datetime-local"> <-> instante UTC, sempre no horário de São Paulo
+// (o Brasil não tem horário de verão desde 2019: o fuso é fixo, -03:00).
+export function isoParaInput(iso: string | null): string {
+  if (!iso) return ''
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: FUSO,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(iso))
+  const m = Object.fromEntries(partes.map((p) => [p.type, p.value]))
+  return `${m.year}-${m.month}-${m.day}T${m.hour}:${m.minute}`
+}
+
+export function inputParaIso(valor: string): string | null {
+  if (!valor) return null
+  const d = new Date(`${valor}:00-03:00`)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
