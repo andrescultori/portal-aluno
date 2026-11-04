@@ -21,5 +21,6 @@ Files:
 - `22_avaliacao_tests.sql` — migration 11: question bank, evaluations, windows, comments, visibility per role.
 - `23_notas_presenca_tests.sql` — migration 12: activities, final project, class days, justifications, attendance.
 - `24_notas_calculadas_tests.sql` — migration 13: workbook parity (Tutoria 8.8 / Final 8.1), edge cases, end-to-end grades, release gating.
+- `25_cobertura_tests.sql` — migration 14: coverage function (expected vs actual evaluators, no leaks, who can call it).
 
 Each test file runs in one transaction and rolls back.

@@ -177,3 +177,23 @@ Staff wrappers — admin and coordenação only: `notas_aluno`, `notas_semestre`
 only the logged-in student's rows, and only for semesters where `alunos.semestre_liberado` is true (every window of the
 semester released). They expose question means with the evaluator **count**, never an evaluator, a comment or the
 pending list. Before release they return nothing ("Resultados ainda não liberados" in the UI).
+
+### 5.5 Migration 14 — coverage for the coordination screen
+
+`alunos.cobertura_semestre(semestre)` (read-only, admin/coordenação): one row per (student, category, evaluator) with
+`esperado` (true = assigned, or house leader in Mentoria — the same rule as the grade calculation), `situacao`
+(`nao_iniciada` | `rascunho` | `enviada` | `sem_avaliador`) and answered/total counts. Evaluations by someone who was not
+assigned appear with `esperado = false`; a student/category with nobody gets one `sem_avaliador` row. Students: `Ativo`,
+plus anyone already evaluated in the semester. Never returns answers or comments.
+
+### 5.6 Screens (so far)
+
+| Route | Who | What |
+|---|---|---|
+| `/admin/avaliacoes` — Semestre | admin, coordenação | create/choose the semester, dates, current semester, generate class days |
+| `/admin/avaliacoes` — Atribuições | admin, coordenação | tutors/mentors per student, filters, bulk assignment by list or house |
+| `/admin/avaliacoes` — Períodos e liberação | admin, coordenação | evaluation window per category (Brasília time), release/unrelease/schedule the results (sets `liberada_em` on every window of the semester), pending-per-student summary before releasing |
+| `/admin/avaliacoes` — Quem já avaliou | admin, coordenação | coverage by evaluator or by student, filters, "copy pending list" |
+| `/avaliar`, `/avaliar/:categoria/:alunoId` | tutor, mentor, lider_casa | own students, evaluation form with autosave, review and submit |
+
+Menus only *show* items per role; every read and write is authorized by RLS.
