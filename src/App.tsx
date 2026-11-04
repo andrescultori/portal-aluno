@@ -9,6 +9,8 @@ import Calendario from './pages/Calendario'
 import LinkSectionPage from './pages/LinkSectionPage'
 import InfoPagePage from './pages/InfoPagePage'
 import Presenca from './pages/Presenca'
+import Avaliar from './pages/Avaliar'
+import AvaliarForm from './pages/AvaliarForm'
 import NotFound from './pages/NotFound'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -18,6 +20,9 @@ import AdminConteudo from './pages/admin/AdminConteudo'
 import AdminRelatorio from './pages/admin/AdminRelatorio'
 import AdminAvisos from './pages/admin/AdminAvisos'
 import AdminAvaliacoes from './pages/admin/AdminAvaliacoes'
+
+// Quem pode abrir as telas de avaliação (a autorização real é do banco, por atribuição).
+const PAPEIS_AVALIADORES = ['tutor', 'mentor', 'lider_casa']
 
 export default function App() {
   return (
@@ -63,6 +68,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Presenca />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/avaliar"
+            element={
+              <ProtectedRoute papeis={PAPEIS_AVALIADORES}>
+                <Avaliar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/avaliar/:categoria/:alunoId"
+            element={
+              <ProtectedRoute papeis={PAPEIS_AVALIADORES}>
+                <AvaliarForm />
               </ProtectedRoute>
             }
           />

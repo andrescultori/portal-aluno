@@ -14,6 +14,12 @@ export interface ItemAdmin {
 // página inicial do Admin, que no celular é o jeito mais direto de navegar.
 export const itensAdmin: ItemAdmin[] = [
   {
+    rotulo: 'Avaliar alunos',
+    descricao: 'Preencha a avaliação pedagógica dos alunos que são seus.',
+    caminho: '/avaliar',
+    papeis: ['tutor', 'mentor', 'lider_casa'],
+  },
+  {
     rotulo: 'Avaliações',
     descricao: 'Semestre, atribuição de tutores e mentores, janelas e liberação dos resultados.',
     caminho: '/admin/avaliacoes',
