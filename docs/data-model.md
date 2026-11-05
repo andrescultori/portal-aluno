@@ -223,7 +223,15 @@ desenvolvimento do(a) aluno(a)?") is empty or blank — the same as the original
 Drafts can still be saved without it. The coordination override (submitting on someone's behalf) needs it too.
 The form shows the field as required, with a hint, and keeps "Revisar e enviar" disabled until it is written.
 
-### 5.10 Screens (so far)
+### 5.10 Migration 19 — a student's absent days
+
+`alunos.faltas_aluno(aluno, semestre, até)` (read-only; admin, coordenação, the student's tutor, secretaria) lists the class
+days (`dias_letivos.aula = true`, up to the cut-off — default yesterday) on which the student has no `presente`/`atraso`
+check-in, each with `justificada` and `motivo`. Same rule as `_presenca_calc`, so the list always agrees with the Presença
+grade; a student without a login linked to the check-in gets no rows. It exists so a tutor can justify absences without
+remembering the dates.
+
+### 5.11 Screens (so far)
 
 | Route | Who | What |
 |---|---|---|
@@ -237,6 +245,7 @@ The form shows the field as required, with a hint, and keeps "Revisar e enviar" 
 | `/admin/turmas` — Turmas e alunos | all staff (RLS filters) | tabs: Alunos (list + filters), Acessos de alunos (portal logins), Turmas e QR Code |
 | `/admin/relatorio` — Presença | all staff read; admin/coordenação/secretaria edit status; admin/coordenação delete | each line has Editar / Excluir with a mandatory reason (migration 17), audited |
 | `/admin/avaliacoes` — Semestre › Dias sem aula | admin, coordenação, secretaria | list / undo / add days without class (`dias_letivos.aula = false`, with reason); "Buscar no Google Agenda" suggests national holidays (Google's Brazilian holiday calendar, pre-checked), the school calendar (`VITE_GOOGLE_CALENDAR_ID`, pre-checked when the title says feriado/recesso/sem aula) and bridge days (holiday on Tuesday → Monday, on Thursday → Friday; never pre-checked). Uses the public calendar API key; no migration |
+| `/admin/notas` — Notas e presença | tabs per role: Atividades and Projeto final (admin, coordenação, tutor); Presença e faltas (+ secretaria) | **Atividades:** pick the class, type `Atividade` (0–9) and `Quiz` (0–1) per student with the keyboard (Enter/↑↓), the DB computes the class grade and the average; coordenação/admin create and rename activities (never deleted). **Projeto final:** components and weights (coordenação/admin; new components start at weight 0; a banner warns while all weights are still equal = provisional), grades 0–10 (2 decimals) per component, the project grade computed in the DB. **Presença e faltas:** summary + the student's absent days with *Justificar* (reason) / *Desfazer*. Tutors see only their Tutoria students; coordenação reads but cannot edit grades (RLS); the DB re-checks every write |
 | `/admin/resultados` | admin, coordenação | per-semester grades for every student from `alunos.notas_semestre` (same "Situação" filter, house, search, sort), partial results flagged, per-student detail (what is missing, evaluators sent, per-question means via `perguntas_aluno`), CSV/Excel export |
 | `/admin/alunos/:id` | all staff (RLS filters) | student page: summary, status change with reason + history (admin/coordenação/secretaria), enrolments, personal data (where RLS allows), and for admin/coordenação a "Desenvolvimento" section (semester results + cycle averages from `historico_aluno` / `medias_ciclo_aluno`) |
 
