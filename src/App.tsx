@@ -10,6 +10,7 @@ import Calendario from './pages/Calendario'
 import LinkSectionPage from './pages/LinkSectionPage'
 import InfoPagePage from './pages/InfoPagePage'
 import Presenca from './pages/Presenca'
+import MeuDesenvolvimento from './pages/MeuDesenvolvimento'
 import Avaliar from './pages/Avaliar'
 import AvaliarForm from './pages/AvaliarForm'
 import NotFound from './pages/NotFound'
@@ -78,6 +79,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Presenca />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/meu-desenvolvimento"
+            element={
+              <ProtectedRoute>
+                <MeuDesenvolvimento />
               </ProtectedRoute>
             }
           />
