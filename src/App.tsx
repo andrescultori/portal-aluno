@@ -18,6 +18,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsuarios from './pages/admin/AdminUsuarios'
 import AdminTurmasAlunos from './pages/admin/AdminTurmasAlunos'
 import AdminAluno from './pages/admin/AdminAluno'
+import AdminResultados from './pages/admin/AdminResultados'
 import AdminConteudo from './pages/admin/AdminConteudo'
 import AdminRelatorio from './pages/admin/AdminRelatorio'
 import AdminAvisos from './pages/admin/AdminAvisos'
@@ -118,6 +119,14 @@ export default function App() {
             />
             <Route path="turmas" element={<AdminTurmasAlunos />} />
             <Route path="alunos/:id" element={<AdminAluno />} />
+            <Route
+              path="resultados"
+              element={
+                <ProtectedRoute papeis={['admin', 'coordenacao']}>
+                  <AdminResultados />
+                </ProtectedRoute>
+              }
+            />
             <Route path="conteudo" element={<AdminConteudo />} />
             <Route path="relatorio" element={<AdminRelatorio />} />
             <Route

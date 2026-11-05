@@ -219,6 +219,7 @@ a student login cannot be turned into staff by accident.
 | `/admin/avaliar`, `/admin/avaliar/:categoria/:alunoId` | tutor, mentor, lider_casa | own students, evaluation form with autosave, review and submit (old `/avaliar…` URLs redirect) |
 | `/admin/usuarios` — Equipe e acessos | admin, coordenação | staff only: functions, active/inactive; reflected in the Atribuições dropdowns |
 | `/admin/turmas` — Turmas e alunos | all staff (RLS filters) | tabs: Alunos (list + filters), Acessos de alunos (portal logins), Turmas e QR Code |
-| `/admin/alunos/:id` | all staff (RLS filters) | student page: summary, status change with reason + history (admin/coordenação/secretaria), enrolments, personal data (where RLS allows) |
+| `/admin/resultados` | admin, coordenação | per-semester grades for every student from `alunos.notas_semestre` (same "Situação" filter, house, search, sort), partial results flagged, per-student detail (what is missing, evaluators sent, per-question means via `perguntas_aluno`), CSV/Excel export |
+| `/admin/alunos/:id` | all staff (RLS filters) | student page: summary, status change with reason + history (admin/coordenação/secretaria), enrolments, personal data (where RLS allows), and for admin/coordenação a "Desenvolvimento" section (semester results + cycle averages from `historico_aluno` / `medias_ciclo_aluno`) |
 
 Menus only *show* items per role; every read and write is authorized by RLS.
