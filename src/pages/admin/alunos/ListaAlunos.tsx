@@ -151,12 +151,24 @@ export default function ListaAlunos() {
       {!carregando && visiveis.length === 0 ? (
         <p className="mt-2 border border-gunmetal-gray/25 p-4 text-sm text-onyx-black">Nenhum aluno com esses filtros.</p>
       ) : (
-        <ul className="mt-2 divide-y divide-gunmetal-gray/15 border border-gunmetal-gray/25">
+        <div className="mt-2 border border-gunmetal-gray/25">
+          <div
+            aria-hidden="true"
+            className="hidden gap-x-4 bg-neutral-tint px-3 py-2 text-xs font-bold uppercase tracking-wide text-muted-purple md:grid md:grid-cols-[minmax(0,1fr)_8rem_7rem_8.5rem_11.5rem_1.25rem]"
+          >
+            <span>Aluno</span>
+            <span>Casa</span>
+            <span>Plano</span>
+            <span>Turma</span>
+            <span>Situação</span>
+            <span />
+          </div>
+        <ul className="divide-y divide-gunmetal-gray/15">
           {visiveis.map((a) => (
             <li key={a.id}>
               <Link
                 to={`/admin/alunos/${a.id}`}
-                className="grid min-h-16 items-center gap-x-3 gap-y-1 p-3 transition hover:bg-soft-pink/40 md:grid-cols-[2fr_1fr_1fr_1fr_auto_auto]"
+                className="grid min-h-16 items-center gap-x-4 gap-y-1 p-3 transition hover:bg-soft-pink/40 md:grid-cols-[minmax(0,1fr)_8rem_7rem_8.5rem_11.5rem_1.25rem]"
               >
                 <span className="min-w-0">
                   <span className="block font-bold text-gunmetal-gray">{a.nome_exibicao ?? a.nome}</span>
@@ -167,7 +179,7 @@ export default function ListaAlunos() {
                 <span className="text-sm text-onyx-black">{a.casa_id !== null ? casaPorId.get(a.casa_id) : 'Sem casa'}</span>
                 <span className="text-sm text-onyx-black">{a.plano ?? 'Sem plano'}</span>
                 <span className="text-sm text-onyx-black">{a.semestre_ingresso ? `Turma ${a.semestre_ingresso}` : '—'}</span>
-                <span className="flex flex-wrap items-center gap-1">
+                <span className="flex flex-wrap items-center gap-1 md:flex-nowrap">
                   <span className={`rounded-sm px-2 py-0.5 text-xs font-bold ${corStatus[a.status] ?? 'bg-neutral-tint'}`}>{a.status}</span>
                   {comAcesso && !comAcesso.has(a.email.toLowerCase()) && (
                     <span className="rounded-sm border border-gunmetal-gray/40 px-2 py-0.5 text-xs text-onyx-black">sem acesso</span>
@@ -178,6 +190,7 @@ export default function ListaAlunos() {
             </li>
           ))}
         </ul>
+        </div>
       )}
     </section>
   )
