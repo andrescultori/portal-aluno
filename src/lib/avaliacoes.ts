@@ -18,10 +18,9 @@ export function rotuloDaResposta(valor: number): string {
 // Abaixo de "Bom" (inclui "não sei responder") exige explicação na observação.
 export const VALOR_MINIMO_SEM_EXPLICACAO = 4
 
-// TODO(owner): no formulário original (Microsoft Forms) "Como você acredita que foi o desenvolvimento
-// do(a) aluno(a)?" é obrigatória. Por enquanto segue a especificação (opcional). Trocar para true
-// exige também a regra equivalente em alunos.enviar_avaliacao.
-export const DESENVOLVIMENTO_OBRIGATORIO = false
+// Decisão da coordenação: no formulário original (Microsoft Forms) "Como você acredita que foi o desenvolvimento
+// do(a) aluno(a)?" é obrigatória. A mesma regra vale no banco (alunos.enviar_avaliacao, migração 18).
+export const DESENVOLVIMENTO_OBRIGATORIO = true
 
 export const textosCategoria: Record<CategoriaAvaliacao, { titulo: string; saudacao: string }> = {
   tutoria: { titulo: 'Tutoria', saudacao: 'Olá tutor(a)!' },
@@ -97,6 +96,8 @@ export function traduzirErro(mensagem: string): string {
   if (mensagem.includes('Answer all questions')) return 'Responda todas as perguntas antes de enviar.'
   if (mensagem.includes('observation is required'))
     return 'Explique na observação os itens marcados abaixo de “Bom” antes de enviar.'
+  if (mensagem.includes('development text is required'))
+    return 'Escreva como você acredita que foi o desenvolvimento do(a) aluno(a) antes de enviar.'
   if (mensagem.includes('window is closed')) return 'O período de avaliação está fechado.'
   if (mensagem.includes('already submitted')) return 'Esta avaliação já foi enviada.'
   if (mensagem.includes('Not allowed') || mensagem.includes('row-level security'))

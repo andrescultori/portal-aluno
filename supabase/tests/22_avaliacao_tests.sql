@@ -195,9 +195,16 @@ select t.ok('tutorb creates the evaluation for Bia', t.affected($$
     from alunos.semestres s, alunos.avaliacao_modelos m
    where s.codigo = '2026-2' and m.categoria = 'tutoria' and m.versao = 1$$) = 1);
 select t.ok('tutorb answers (all Bom)', t.fill('f0000000-0000-0000-0000-000000000002', 4::smallint) = 8);
-select t.ok('tutorb writes a private development text', t.affected($$
+select t.throws_code('the development text is required (no comment at all)',
+  $$select alunos.enviar_avaliacao('f0000000-0000-0000-0000-000000000002')$$, '22023');
+select t.ok('tutorb saves a blank development text (drafts may be incomplete)', t.affected($$
   insert into alunos.avaliacao_comentarios (avaliacao_id, desenvolvimento)
-  values ('f0000000-0000-0000-0000-000000000002', 'dev-tutorb-bia')$$) = 1);
+  values ('f0000000-0000-0000-0000-000000000002', '   ')$$) = 1);
+select t.throws_code('a blank development text does not count',
+  $$select alunos.enviar_avaliacao('f0000000-0000-0000-0000-000000000002')$$, '22023');
+select t.ok('tutorb writes a private development text', t.affected($$
+  update alunos.avaliacao_comentarios set desenvolvimento = 'dev-tutorb-bia'
+   where avaliacao_id = 'f0000000-0000-0000-0000-000000000002'$$) = 1);
 select t.runs('all-Bom evaluation needs no observation', $$select alunos.enviar_avaliacao('f0000000-0000-0000-0000-000000000002')$$);
 select t.ok('tutorb sees only his own evaluation', (select count(*) from alunos.avaliacoes) = 1);
 select t.ok('tutorb cannot read the other tutor''s answers',
@@ -246,6 +253,11 @@ select t.ok('leader answers "cannot answer" (1) everywhere', t.fill('f0000000-00
 select t.throws_code('"cannot answer" counts as below Bom and needs the observation',
   $$select alunos.enviar_avaliacao('f0000000-0000-0000-0000-000000000003')$$, '22023');
 select t.ok('leader switches to Excelente', t.fill('f0000000-0000-0000-0000-000000000003', 5::smallint) = 11);
+select t.throws_code('leader cannot submit without the development text',
+  $$select alunos.enviar_avaliacao('f0000000-0000-0000-0000-000000000003')$$, '22023');
+select t.ok('leader writes the development text', t.affected($$
+  insert into alunos.avaliacao_comentarios (avaliacao_id, desenvolvimento)
+  values ('f0000000-0000-0000-0000-000000000003', 'dev-lider')$$) = 1);
 select t.runs('leader submits', $$select alunos.enviar_avaliacao('f0000000-0000-0000-0000-000000000003')$$);
 select t.throws_code('an answer from the Tutoria model is rejected inside a Mentoria evaluation', $$
   insert into alunos.avaliacao_respostas (avaliacao_id, pergunta_id, valor)
@@ -350,6 +362,11 @@ select t.ok('coordenacao edits an answer AFTER submit', t.affected($$
 select t.ok('coordenacao edits a comment AFTER submit', t.affected($$
   update alunos.avaliacao_comentarios set observacoes = 'revised by coordination'
    where avaliacao_id = 'f0000000-0000-0000-0000-000000000001'$$) = 1);
+select t.throws_code('coordenacao override also needs the development text',
+  $$select alunos.enviar_avaliacao('f0000000-0000-0000-0000-000000000004')$$, '22023');
+select t.ok('coordenacao writes the mentor''s development text', t.affected($$
+  insert into alunos.avaliacao_comentarios (avaliacao_id, desenvolvimento)
+  values ('f0000000-0000-0000-0000-000000000004', 'dev-mentor')$$) = 1);
 select t.runs('coordenacao submits on behalf of the mentor after the window closed (override)',
   $$select alunos.enviar_avaliacao('f0000000-0000-0000-0000-000000000004')$$);
 select t.ok('...and the evaluation is enviada',

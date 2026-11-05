@@ -216,7 +216,14 @@ through two guarded functions, never by touching the table, the policies or the 
 (who, when, before/after, `motivo` — a new nullable column). A deleted record is kept in full in the audit row (`antes`),
 so it can be restored by hand; if the student checks in again the same day the normal check-in works.
 
-### 5.9 Screens (so far)
+### 5.9 Migration 18 — the development text is required
+
+`alunos.enviar_avaliacao` now also refuses to submit when the `desenvolvimento` comment ("Como você acredita que foi o
+desenvolvimento do(a) aluno(a)?") is empty or blank — the same as the original Microsoft Forms (owner's decision, 2026-11-05).
+Drafts can still be saved without it. The coordination override (submitting on someone's behalf) needs it too.
+The form shows the field as required, with a hint, and keeps "Revisar e enviar" disabled until it is written.
+
+### 5.10 Screens (so far)
 
 | Route | Who | What |
 |---|---|---|
