@@ -28,6 +28,8 @@ Files:
 
 - `28_presenca_correcao_tests.sql` — migration 17: correct/delete a check-in record (who may, reason required, audit with before/after, direct table writes still blocked).
 
+- `29_faltas_tests.sql` — migration 19: absent-days list (same rule as the Presença grade, justified days, holidays, no login linked, who may read).
+
 Each test file runs in one transaction and rolls back.
 
 The import dry-run (`scripts/import-geral/`) has its own unit tests: `npm run test:import` (fake data only). See `docs/import-geral.md`.
