@@ -194,8 +194,9 @@ export default function ProjetoNotas({ semestre, perm }: { semestre: Semestre; p
           {!perm.configura && ' Só a coordenação e a administração mudam os pesos.'}
         </p>
         {pesosIguais && (
-          <p role="status" className="mt-2 border-l-4 border-mandarin-orange bg-soft-pink/60 p-3 text-sm text-onyx-black">
-            Os pesos ainda estão todos iguais (valor provisório). A coordenação precisa confirmar os pesos reais antes de valer para as notas finais.
+          <p role="status" className="mt-2 border-l-4 border-gunmetal-gray bg-neutral-tint p-3 text-sm text-onyx-black">
+            Todos os componentes têm o mesmo peso: a nota do projeto é a média simples deles (Projeto + Escrita + Avaliação de pares, dividido por 3).
+            Enquanto faltar algum, a nota do projeto aparece como parcial.
           </p>
         )}
         <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

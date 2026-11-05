@@ -34,9 +34,9 @@ insert into public.allowed_users (id, nome, email, papel, turma_id) values
 select t.ok('a new semester gets 3 default components with equal weights',
   (select count(*) = 3 and min(peso) = 1 and max(peso) = 1 from alunos.projeto_componentes
     where semestre_id = '50000000-0000-0000-0000-000000000001'));
-select t.ok('component codes are projeto / apresentacao / trabalho_escrito',
+select t.ok('component codes are projeto / escrita / avaliacao_pares',
   (select string_agg(codigo, ',' order by codigo) from alunos.projeto_componentes
-    where semestre_id = '50000000-0000-0000-0000-000000000001') = 'apresentacao,projeto,trabalho_escrito');
+    where semestre_id = '50000000-0000-0000-0000-000000000001') = 'avaliacao_pares,escrita,projeto');
 
 -- ------------------------------------------------------------------ class days
 select t.as_user('tutora@test.local');
@@ -122,9 +122,9 @@ select t.as_user('tutora@test.local');
 select t.ok('tutora grades two components of Ana (8 and 9)', t.affected($$
   insert into alunos.projeto_notas (semestre_id, aluno_id, codigo, nota) values
     ('50000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-00000000000a', 'projeto', 8),
-    ('50000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-00000000000a', 'apresentacao', 9)$$) = 2);
-select t.ok('Projeto renormalises over available components: (8+9)/2 = 8.5, missing = trabalho_escrito',
-  (select projeto = 8.5 and componentes = 3 and com_nota = 2 and faltando = array['trabalho_escrito']
+    ('50000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-00000000000a', 'avaliacao_pares', 9)$$) = 2);
+select t.ok('Projeto renormalises over available components: (8+9)/2 = 8.5, missing = escrita',
+  (select projeto = 8.5 and componentes = 3 and com_nota = 2 and faltando = array['escrita']
      from alunos.projeto_aluno('a0000000-0000-0000-0000-00000000000a', '50000000-0000-0000-0000-000000000001')));
 select t.throws_code('component grade above 10 is rejected', $$
   update alunos.projeto_notas set nota = 10.5 where codigo = 'projeto'$$, '23514');
@@ -145,7 +145,7 @@ select t.ok('weighted mean: (8*2 + 9*1) / 3 = 8.3333…',
   (select abs(projeto - 25.0 / 3) < 0.0000001 from alunos.projeto_aluno('a0000000-0000-0000-0000-00000000000a', '50000000-0000-0000-0000-000000000001')));
 select t.ok('coordenacao zeroes a weight', t.affected($$
   update alunos.projeto_componentes set peso = 0
-   where codigo = 'trabalho_escrito' and semestre_id = '50000000-0000-0000-0000-000000000001'$$) = 1);
+   where codigo = 'escrita' and semestre_id = '50000000-0000-0000-0000-000000000001'$$) = 1);
 select t.ok('...a zero-weight component is ignored and not reported as missing',
   (select componentes = 2 and faltando = '{}'::text[]
      from alunos.projeto_aluno('a0000000-0000-0000-0000-00000000000a', '50000000-0000-0000-0000-000000000001')));
@@ -154,7 +154,7 @@ select t.ok('coordenacao cannot grade the project (0 rows)',
 reset role;
 select t.as_user('adm@test.local');
 select t.ok('admin: student with no project grades -> Projeto null, components missing',
-  (select projeto is null and com_nota = 0 and faltando = array['apresentacao', 'projeto']
+  (select projeto is null and com_nota = 0 and faltando = array['avaliacao_pares', 'projeto']
      from alunos.projeto_aluno('a0000000-0000-0000-0000-00000000000b', '50000000-0000-0000-0000-000000000001')));
 reset role;
 
