@@ -10,5 +10,5 @@
     "types": ["node"],
     "lib": ["ES2023"]
   },
-  "include": ["./**/*.ts"]
+  "include": ["./**/*.ts", "../src/lib/diasSemAula.ts", "../src/lib/diasSemAula.test.ts"]
 }

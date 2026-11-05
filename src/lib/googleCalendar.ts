@@ -72,3 +72,27 @@ export async function buscarProximosEventos(limite = 3): Promise<EventoCalendari
   }
   return ((data.items ?? []) as ItemGoogleCalendar[]).map(mapearEvento)
 }
+
+// Agenda pública de feriados do Brasil mantida pelo próprio Google (leitura com a mesma chave de API).
+export const AGENDA_FERIADOS_BR = 'pt-br.brazilian#holiday@group.v.calendar.google.com'
+
+// Eventos de uma agenda entre duas datas (AAAA-MM-DD, inclusivas), no horário de Brasília.
+// Lança erro com mensagem legível se a API não estiver configurada ou falhar.
+export async function buscarEventosPeriodo(agendaId: string, de: string, ate: string): Promise<EventoCalendario[]> {
+  if (!calendarApiKey) throw new Error('Google Agenda não configurado (falta a chave de API).')
+  const ateExclusivo = diaSeguinte(ate)
+  const url =
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(agendaId)}/events` +
+    `?key=${calendarApiKey}&singleEvents=true&orderBy=startTime&maxResults=250` +
+    `&timeMin=${encodeURIComponent(`${de}T00:00:00-03:00`)}&timeMax=${encodeURIComponent(`${ateExclusivo}T00:00:00-03:00`)}`
+  const res = await fetch(url)
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message ?? `Erro ${res.status} ao consultar o Google Agenda.`)
+  return ((data.items ?? []) as ItemGoogleCalendar[]).map(mapearEvento)
+}
+
+function diaSeguinte(dataISO: string): string {
+  const [ano, mes, dia] = dataISO.split('-').map(Number)
+  const d = new Date(Date.UTC(ano, mes - 1, dia + 1))
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
+}

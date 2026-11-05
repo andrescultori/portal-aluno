@@ -14,6 +14,7 @@ import type {
 import { ROTULO_PAPEL, rotuloCategoria } from '../../types/alunos'
 import Modal from '../../components/Modal'
 import CabecalhoAdmin from './CabecalhoAdmin'
+import DiasSemAula from './DiasSemAula'
 import FiltroStatus, { passa, useElegibilidade, valorValido, type ValorFiltroStatus } from './FiltroStatus'
 import AvaliacoesJanelas from './AvaliacoesJanelas'
 import AvaliacoesCobertura from './AvaliacoesCobertura'
@@ -242,10 +243,11 @@ function SecaoSemestre({
   const [diasLetivos, setDiasLetivos] = useState<number | null>(null)
   const [ocupado, setOcupado] = useState(false)
   const [modalNovo, setModalNovo] = useState(false)
+  // Sobe quando os dias sem aula mudam, para refazer a contagem de dias letivos.
+  const [versaoDias, setVersaoDias] = useState(0)
 
   useEffect(() => {
     setEdicao({ inicio: semestre?.inicio ?? '', fim: semestre?.fim ?? '' })
-    setDiasLetivos(null)
     if (!semestre) return
     db()
       .from('dias_letivos')
@@ -253,7 +255,7 @@ function SecaoSemestre({
       .eq('semestre_id', semestre.id)
       .eq('aula', true)
       .then(({ count }) => setDiasLetivos(count ?? 0))
-  }, [semestre])
+  }, [semestre, versaoDias])
 
   // Só um semestre pode ser o atual (índice único no banco): desmarca os outros antes.
   async function marcarAtual(id: string) {
@@ -490,6 +492,9 @@ function SecaoSemestre({
             {(!semestre.inicio || !semestre.fim) && (
               <p className="mt-2 text-xs text-muted-purple">Salve as datas de início e fim primeiro.</p>
             )}
+
+            <hr className="my-4 border-gunmetal-gray/15" />
+            <DiasSemAula semestre={semestre} aoAlterar={() => setVersaoDias((v) => v + 1)} />
           </div>
         )}
 

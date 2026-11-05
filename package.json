@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:import": "tsx --test scripts/import-geral/core.test.ts scripts/import-geral/sql.test.ts",
+    "test:lib": "tsx --test src/lib/diasSemAula.test.ts",
     "import:dry-run": "tsx scripts/import-geral/cli.ts"
   },
   "dependencies": {
