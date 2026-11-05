@@ -26,6 +26,8 @@ Files:
 - `26_avaliaveis_tests.sql` — migration 15: who is evaluable (status, agreement plan, enrolment plan wins, history stays) and where it applies.
 - `27_equipe_tests.sql` — migration 16: staff management (login + roles + evaluator entry), who may do what, guards, audit.
 
+- `28_presenca_correcao_tests.sql` — migration 17: correct/delete a check-in record (who may, reason required, audit with before/after, direct table writes still blocked).
+
 Each test file runs in one transaction and rolls back.
 
 The import dry-run (`scripts/import-geral/`) has its own unit tests: `npm run test:import` (fake data only). See `docs/import-geral.md`.
