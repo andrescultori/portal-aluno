@@ -1,0 +1,352 @@
+import { useEffect, useRef, useState } from 'react'
+import { supabase } from '../../../lib/supabaseClient'
+import type { AllowedUser, Turma } from '../../../types/database'
+
+function detectarDelimitador(linha: string): string {
+  const virgulas = (linha.match(/,/g) ?? []).length
+  const pontoEVirgulas = (linha.match(/;/g) ?? []).length
+  return pontoEVirgulas > virgulas ? ';' : ','
+}
+
+function limparCampo(campo: string): string {
+  return campo.trim().replace(/^"(.*)"$/, '$1').trim()
+}
+
+function parseCsv(texto: string): Record<string, string>[] {
+  // Excel em pt-BR exporta CSV com ; em vez de , (o padrão de fábrica do
+  // locale) e às vezes com um BOM no início do arquivo — trata os dois casos.
+  const semBom = texto.replace(/^﻿/, '')
+  const linhas = semBom.trim().split(/\r?\n/)
+  if (linhas.length < 2) return []
+  const delimitador = detectarDelimitador(linhas[0])
+  const cabecalho = linhas[0].split(delimitador).map((c) => limparCampo(c).toLowerCase())
+  return linhas.slice(1).map((linha) => {
+    const valores = linha.split(delimitador).map(limparCampo)
+    const registro: Record<string, string> = {}
+    cabecalho.forEach((chave, i) => {
+      registro[chave] = valores[i] ?? ''
+    })
+    return registro
+  })
+}
+
+export default function AcessosAlunos() {
+  const [usuarios, setUsuarios] = useState<AllowedUser[]>([])
+  const [turmas, setTurmas] = useState<Turma[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [mensagem, setMensagem] = useState<string | null>(null)
+  const [novo, setNovo] = useState({ nome: '', email: '', turma_id: '' })
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [edicao, setEdicao] = useState({ nome: '', email: '', turma_id: '' })
+
+  async function carregar() {
+    setCarregando(true)
+    const [{ data: usuariosData }, { data: turmasData }] = await Promise.all([
+      supabase.from('allowed_users').select('*').eq('papel', 'aluno').order('nome'),
+      supabase
+        .from('turmas')
+        .select('id, nome, horario_inicio, horario_fim_presente, horario_fim_atraso, ativo')
+        .order('nome'),
+    ])
+    setUsuarios((usuariosData as AllowedUser[]) ?? [])
+    setTurmas((turmasData as Turma[]) ?? [])
+    setCarregando(false)
+  }
+
+  useEffect(() => {
+    carregar()
+  }, [])
+
+  async function adicionarUsuario(e: React.FormEvent) {
+    e.preventDefault()
+    setMensagem(null)
+    const { error } = await supabase.from('allowed_users').insert({
+      nome: novo.nome,
+      email: novo.email.toLowerCase(),
+      papel: 'aluno',
+      turma_id: novo.turma_id || null,
+    })
+    if (error) {
+      setMensagem(`Erro ao adicionar: ${error.message}`)
+      return
+    }
+    setNovo({ nome: '', email: '', turma_id: '' })
+    carregar()
+  }
+
+  async function alternarAtivo(usuario: AllowedUser) {
+    await supabase.from('allowed_users').update({ ativo: !usuario.ativo }).eq('id', usuario.id)
+    carregar()
+  }
+
+  async function removerUsuario(id: string) {
+    await supabase.from('allowed_users').delete().eq('id', id)
+    carregar()
+  }
+
+  function iniciarEdicao(usuario: AllowedUser) {
+    setEditandoId(usuario.id)
+    setEdicao({
+      nome: usuario.nome,
+      email: usuario.email,
+      turma_id: usuario.turma_id ?? '',
+    })
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null)
+  }
+
+  async function salvarEdicao(id: string) {
+    setMensagem(null)
+    const { error } = await supabase
+      .from('allowed_users')
+      .update({
+        nome: edicao.nome,
+        email: edicao.email.toLowerCase(),
+        turma_id: edicao.turma_id || null,
+      })
+      .eq('id', id)
+    if (error) {
+      setMensagem(`Erro ao salvar: ${error.message}`)
+      return
+    }
+    setEditandoId(null)
+    carregar()
+  }
+
+  async function importarArquivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    if (!arquivo) return
+    setMensagem(null)
+
+    if (!arquivo.name.toLowerCase().endsWith('.csv')) {
+      setMensagem('Formato não suportado. Exporte a planilha do Excel como CSV e envie novamente.')
+      if (fileRef.current) fileRef.current.value = ''
+      return
+    }
+
+    const texto = await arquivo.text()
+    const registros = parseCsv(texto)
+    if (registros.length === 0) {
+      setMensagem('Nenhum registro encontrado no arquivo. Verifique o cabeçalho: nome,email,turma')
+      return
+    }
+
+    // A equipe é gerenciada em "Equipe e acessos": nesta importação, e-mails que já são da equipe são ignorados
+    // (assim uma planilha nunca troca o papel de um membro da equipe).
+    const { data: equipeExistente } = await supabase.from('allowed_users').select('email').eq('papel', 'equipe')
+    const emailsEquipe = new Set(((equipeExistente as { email: string }[] | null) ?? []).map((u) => u.email.toLowerCase()))
+    const comEmail = registros.filter((r) => r.email)
+    const linhas = comEmail
+      .filter((r) => !emailsEquipe.has(r.email.toLowerCase()))
+      .map((r) => {
+        const turma = turmas.find((t) => t.nome.toLowerCase() === (r.turma ?? '').toLowerCase())
+        return {
+          nome: r.nome || r.email,
+          email: r.email.toLowerCase(),
+          papel: 'aluno' as const,
+          turma_id: turma?.id ?? null,
+          ativo: true,
+        }
+      })
+    const ignorados = comEmail.length - linhas.length
+
+    if (linhas.length === 0) {
+      setMensagem(
+        'Nenhuma linha tinha um e-mail reconhecido. Confira se o cabeçalho da planilha é exatamente "nome,email,turma" (com vírgula ou ponto e vírgula) e se a coluna de e-mail está preenchida.',
+      )
+      if (fileRef.current) fileRef.current.value = ''
+      return
+    }
+
+    const { error } = await supabase
+      .from('allowed_users')
+      .upsert(linhas, { onConflict: 'email' })
+
+    if (error) {
+      setMensagem(`Erro ao importar: ${error.message}`)
+    } else {
+      setMensagem(`${linhas.length} aluno(s) importado(s) com sucesso.${ignorados > 0 ? ` ${ignorados} e-mail(s) da equipe foram ignorados.` : ''}`)
+      carregar()
+    }
+    if (fileRef.current) fileRef.current.value = ''
+  }
+
+  return (
+    <div>
+      <div className="mb-6 rounded-none border border-gunmetal-gray/25 bg-white p-5">
+        <h2 className="mb-2 font-medium text-gunmetal-gray">Importar acessos de alunos (CSV)</h2>
+        <p className="mb-3 text-sm text-onyx-black">
+          Colunas esperadas: <code className="rounded bg-neutral-tint px-1">nome,email,turma</code>. Se sua
+          planilha estiver em Excel, exporte como CSV antes de enviar — vírgula ou ponto e vírgula como
+          separador, tanto faz. Aqui ficam só os logins de alunos (quem pode entrar e em qual turma de
+          presença); a equipe é gerenciada em “Equipe e acessos”.
+        </p>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv"
+          onChange={importarArquivo}
+          className="block w-full max-w-full text-sm file:mr-3 file:rounded-sm file:border-0 file:bg-neutral-tint file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gunmetal-gray"
+        />
+        {mensagem && <p className="mt-3 text-sm text-onyx-black">{mensagem}</p>}
+      </div>
+
+      <form
+        onSubmit={adicionarUsuario}
+        className="mb-6 grid gap-3 rounded-none border border-gunmetal-gray/25 bg-white p-5 md:grid-cols-3"
+      >
+        <input
+          required
+          placeholder="Nome"
+          value={novo.nome}
+          onChange={(e) => setNovo({ ...novo, nome: e.target.value })}
+          className="rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
+        />
+        <input
+          required
+          type="email"
+          placeholder="E-mail"
+          value={novo.email}
+          onChange={(e) => setNovo({ ...novo, email: e.target.value })}
+          className="rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
+        />
+        <select
+          value={novo.turma_id}
+          onChange={(e) => setNovo({ ...novo, turma_id: e.target.value })}
+          className="rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
+        >
+          <option value="">Sem turma</option>
+          {turmas.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.nome}
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark md:col-span-3"
+        >
+          Adicionar aluno
+        </button>
+      </form>
+
+      {carregando ? (
+        <p className="text-onyx-black">Carregando...</p>
+      ) : (
+        <div className="overflow-x-auto rounded-none border border-gunmetal-gray/25 bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-neutral-tint text-onyx-black">
+              <tr>
+                <th className="px-4 py-2">Nome</th>
+                <th className="px-4 py-2">E-mail</th>
+                <th className="px-4 py-2">Turma</th>
+                <th className="px-4 py-2">Ativo</th>
+                <th className="px-4 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map((u) =>
+                editandoId === u.id ? (
+                  <tr key={u.id} className="border-t border-gunmetal-gray/25">
+                    <td className="px-4 py-2">
+                      <input
+                        value={edicao.nome}
+                        onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })}
+                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="email"
+                        value={edicao.email}
+                        onChange={(e) => setEdicao({ ...edicao, email: e.target.value })}
+                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <select
+                        value={edicao.turma_id}
+                        onChange={(e) => setEdicao({ ...edicao, turma_id: e.target.value })}
+                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
+                      >
+                        <option value="">Sem turma</option>
+                        {turmas.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        onClick={() => alternarAtivo(u)}
+                        className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
+                          u.ativo ? 'bg-green-100 text-green-700' : 'bg-neutral-tint text-onyx-black'
+                        }`}
+                      >
+                        {u.ativo ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => salvarEdicao(u.id)}
+                          className="text-xs font-medium text-gunmetal-gray hover:underline"
+                        >
+                          Salvar
+                        </button>
+                        <button
+                          onClick={cancelarEdicao}
+                          className="text-xs font-medium text-onyx-black hover:underline"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={u.id} className="border-t border-gunmetal-gray/25">
+                    <td className="px-4 py-2">{u.nome}</td>
+                    <td className="px-4 py-2">{u.email}</td>
+                    <td className="px-4 py-2">
+                      {turmas.find((t) => t.id === u.turma_id)?.nome ?? '—'}
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        onClick={() => alternarAtivo(u)}
+                        className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
+                          u.ativo ? 'bg-green-100 text-green-700' : 'bg-neutral-tint text-onyx-black'
+                        }`}
+                      >
+                        {u.ativo ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => iniciarEdicao(u)}
+                          className="text-xs font-medium text-onyx-black hover:underline"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => confirm(`Remover o acesso de ${u.nome}?`) && removerUsuario(u.id)}
+                          className="text-xs font-medium text-red-600 hover:underline"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}

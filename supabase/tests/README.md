@@ -23,6 +23,9 @@ Files:
 - `24_notas_calculadas_tests.sql` — migration 13: workbook parity (Tutoria 8.8 / Final 8.1), edge cases, end-to-end grades, release gating.
 - `25_cobertura_tests.sql` — migration 14: coverage function (expected vs actual evaluators, no leaks, who can call it).
 
+- `26_avaliaveis_tests.sql` — migration 15: who is evaluable (status, agreement plan, enrolment plan wins, history stays) and where it applies.
+- `27_equipe_tests.sql` — migration 16: staff management (login + roles + evaluator entry), who may do what, guards, audit.
+
 Each test file runs in one transaction and rolls back.
 
 The import dry-run (`scripts/import-geral/`) has its own unit tests: `npm run test:import` (fake data only). See `docs/import-geral.md`.

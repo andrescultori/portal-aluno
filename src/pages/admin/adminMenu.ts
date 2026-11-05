@@ -49,6 +49,7 @@ export const itensAdmin: ItemAdmin[] = [
   },
   {
     rotulo: 'Equipe e acessos',
+    papeis: ['admin', 'coordenacao'],
     grupo: 'Equipe',
     descricao: 'Quem é da equipe, com que função (coordenação, tutor, mentor, líder de casa) e o que cada um acessa.',
     caminho: '/admin/usuarios',

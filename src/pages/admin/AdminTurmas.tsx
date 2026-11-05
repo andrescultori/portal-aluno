@@ -3,7 +3,6 @@ import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../../lib/supabaseClient'
 import { hhmm } from '../../lib/datas'
 import type { Turma } from '../../types/database'
-import CabecalhoAdmin from './CabecalhoAdmin'
 
 const campoHora =
   'mt-1 block min-h-11 w-full min-w-0 rounded-sm border border-gunmetal-gray/25 bg-pure-white px-2 text-sm font-normal text-onyx-black'
@@ -133,8 +132,6 @@ export default function AdminTurmas() {
 
   return (
     <div>
-      <CabecalhoAdmin titulo="Turmas e alunos" trilha={[{ rotulo: 'Turmas' }]} />
-
       <form
         onSubmit={criar}
         className="mb-6 grid grid-cols-3 gap-3 rounded-none border border-gunmetal-gray/25 bg-white p-4 md:grid-cols-5 md:p-5"
