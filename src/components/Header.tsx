@@ -126,6 +126,7 @@ export default function Header() {
     { to: '/presenca', label: 'Presença' },
     { to: '/calendario', label: 'Calendário' },
     { to: '/manual', label: 'Manual do Aluno' },
+    ...(perfil.papel === 'aluno' ? [{ to: '/meu-desenvolvimento', label: 'Meu desenvolvimento' }] : []),
     ...(temPapel('tutor', 'mentor', 'lider_casa') ? [{ to: '/admin/avaliar', label: 'Avaliar alunos' }] : []),
   ]
 
