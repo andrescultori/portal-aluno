@@ -53,6 +53,31 @@ interface Historico {
   motivo: string | null
 }
 type Dados = Record<string, string | null>
+interface Desenvolvimento {
+  semestre_id: string
+  semestre: string
+  ciclo: string | null
+  teoria: number | null
+  pratica: number | null
+  atividades: number | null
+  projeto: number | null
+  presenca: number | null
+  tutoria: number | null
+  mentoria: number | null
+  final: number | null
+  conceito: string | null
+  aprovado: boolean | null
+  completo: boolean
+}
+interface MediasCiclo {
+  media_basico: number | null
+  media_avancado: number | null
+  media_final: number | null
+  semestres: number
+  semestres_incompletos: number
+}
+const nota = (n: number | null) =>
+  n === null || n === undefined ? '—' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })
 
 const campo =
   'mt-1 block min-h-11 w-full min-w-0 rounded-sm border border-gunmetal-gray/40 bg-pure-white px-2 text-sm font-normal text-onyx-black'
@@ -83,12 +108,16 @@ export default function AdminAluno() {
   const { id } = useParams()
   const { temPapel } = useAuth()
   const podeMudarStatus = temPapel('admin', 'coordenacao', 'secretaria')
+  // As funções de notas do banco só respondem a administração e coordenação.
+  const veDesenvolvimento = temPapel('admin', 'coordenacao')
   const [aluno, setAluno] = useState<Aluno | null>(null)
   const [casa, setCasa] = useState<string | null>(null)
   const [matriculas, setMatriculas] = useState<Matricula[]>([])
   const [ciclos, setCiclos] = useState<CicloStatus[]>([])
   const [historico, setHistorico] = useState<Historico[]>([])
   const [dados, setDados] = useState<Dados | null>(null)
+  const [desenvolvimento, setDesenvolvimento] = useState<Desenvolvimento[]>([])
+  const [medias, setMedias] = useState<MediasCiclo | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [novoStatus, setNovoStatus] = useState('')
@@ -98,12 +127,14 @@ export default function AdminAluno() {
 
   const carregar = useCallback(async () => {
     if (!id) return
-    const [a, m, c, h, d] = await Promise.all([
+    const [a, m, c, h, d, dv, md] = await Promise.all([
       db().from('alunos').select('*').eq('id', id).maybeSingle(),
       db().from('matriculas').select('id, cenario, plano, semestres(codigo), ciclos(nome), modulos(nome)').eq('aluno_id', id),
       db().from('ciclo_status').select('status, ciclos(nome)').eq('aluno_id', id),
       db().from('aluno_status_historico').select('id, status, desde, motivo').eq('aluno_id', id).order('desde', { ascending: false }),
       db().from('dados_pessoais').select('*').eq('aluno_id', id).maybeSingle(),
+      veDesenvolvimento ? db().rpc('historico_aluno', { p_aluno: id }) : Promise.resolve({ data: [], error: null }),
+      veDesenvolvimento ? db().rpc('medias_ciclo_aluno', { p_aluno: id }) : Promise.resolve({ data: [], error: null }),
     ])
     if (a.error) {
       setErro(`Não foi possível carregar o aluno: ${a.error.message}`)
@@ -126,8 +157,10 @@ export default function AdminAluno() {
     setCiclos((c.data as unknown as CicloStatus[]) ?? [])
     setHistorico((h.data as Historico[]) ?? [])
     setDados((d.data as Dados | null) ?? null)
+    setDesenvolvimento(((dv.data as Desenvolvimento[]) ?? []).sort((x, y) => y.semestre.localeCompare(x.semestre)))
+    setMedias(((md.data as MediasCiclo[]) ?? [])[0] ?? null)
     setCarregando(false)
-  }, [id])
+  }, [id, veDesenvolvimento])
 
   useEffect(() => {
     carregar()
@@ -312,6 +345,71 @@ export default function AdminAluno() {
           </ul>
         )}
       </section>
+
+      {veDesenvolvimento && (
+        <section className="mt-8" aria-labelledby="desenvolvimento">
+          <h2 id="desenvolvimento" className="font-display text-3xl text-gunmetal-gray">
+            Desenvolvimento
+          </h2>
+          {desenvolvimento.length === 0 ? (
+            <p className="mt-2 border border-gunmetal-gray/25 p-4 text-sm text-onyx-black">Ainda não há resultados para este aluno.</p>
+          ) : (
+            <>
+              {medias && (
+                <ul className="mt-2 grid grid-cols-3 gap-3 text-center sm:max-w-xl">
+                  {[
+                    ['Média Básico', medias.media_basico],
+                    ['Média Avançado', medias.media_avancado],
+                    ['Média final', medias.media_final],
+                  ].map(([rotulo, valor]) => (
+                    <li key={rotulo as string} className="bg-gunmetal-gray p-3 text-white">
+                      <span className="block font-display text-4xl font-bold leading-none">{nota(valor as number | null)}</span>
+                      <span className="text-xs font-bold uppercase tracking-wide">{rotulo as string}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {medias && medias.semestres_incompletos > 0 && (
+                <p className="mt-2 border-l-4 border-mandarin-orange bg-soft-pink/60 p-3 text-sm text-onyx-black">
+                  {medias.semestres_incompletos} de {medias.semestres} semestres ainda têm resultado parcial: as médias podem mudar.
+                </p>
+              )}
+              <div className="mt-3 overflow-x-auto border border-gunmetal-gray/25 bg-white">
+                <table className="w-full min-w-[44rem] text-left text-sm">
+                  <thead className="bg-neutral-tint text-xs uppercase tracking-wide text-muted-purple">
+                    <tr>
+                      <th className="px-3 py-2">Semestre</th>
+                      <th className="px-2 py-2 text-right">Tutoria</th>
+                      <th className="px-2 py-2 text-right">Mentoria</th>
+                      <th className="px-2 py-2 text-right">Final</th>
+                      <th className="px-3 py-2">Conceito</th>
+                      <th className="px-3 py-2">Situação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {desenvolvimento.map((d) => (
+                      <tr key={d.semestre_id} className="border-t border-gunmetal-gray/15">
+                        <td className="px-3 py-2 font-bold text-gunmetal-gray">
+                          {d.semestre}
+                          <span className="ml-2 text-xs font-normal text-muted-purple">{d.ciclo ?? ''}</span>
+                        </td>
+                        <td className="px-2 py-2 text-right tabular-nums">{nota(d.tutoria)}</td>
+                        <td className="px-2 py-2 text-right tabular-nums">{nota(d.mentoria)}</td>
+                        <td className="px-2 py-2 text-right font-bold tabular-nums text-gunmetal-gray">{nota(d.final)}</td>
+                        <td className="px-3 py-2">{d.conceito ?? '—'}</td>
+                        <td className="px-3 py-2">
+                          {d.final === null ? '—' : !d.completo ? 'Parcial' : d.aprovado ? 'Aprovado(a)' : 'Reprovado(a)'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-2 text-xs text-muted-purple">Detalhes por componente e por pergunta: tela Resultados.</p>
+            </>
+          )}
+        </section>
+      )}
 
       {dados && (
         <section className="mt-8" aria-labelledby="dados">

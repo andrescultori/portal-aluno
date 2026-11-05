@@ -35,6 +35,13 @@ export const itensAdmin: ItemAdmin[] = [
     papeis: ['admin', 'coordenacao'],
   },
   {
+    rotulo: 'Resultados',
+    grupo: 'Avaliações',
+    descricao: 'Notas e conceito de cada aluno por semestre, com o que falta e exportação para Excel.',
+    caminho: '/admin/resultados',
+    papeis: ['admin', 'coordenacao'],
+  },
+  {
     rotulo: 'Relatório de presença',
     grupo: 'Alunos',
     descricao: 'Presentes, atrasos e faltas por turma e período.',
