@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { hojeISO } from '../../lib/datas'
 import type { Aviso } from '../../types/database'
+import CabecalhoAdmin from './CabecalhoAdmin'
 
 interface FormAviso {
   titulo: string
@@ -101,15 +102,11 @@ export default function AdminAvisos() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <p className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">
-        Administração
-      </p>
-      <h1 className="font-display text-[40px] leading-none text-gunmetal-gray md:text-[48px]">
-        Avisos
-      </h1>
-      <p className="mt-2 text-sm text-onyx-black">
-        Os três avisos ativos mais recentes aparecem no card “Avisos e comunicados” da Home.
-      </p>
+      <CabecalhoAdmin
+        titulo="Avisos"
+        trilha={[{ rotulo: 'Conteúdo do site' }, { rotulo: 'Avisos' }]}
+        descricao="Os três avisos ativos mais recentes aparecem no card “Avisos e comunicados” da Home."
+      />
 
       {tabelaAusente && (
         <p role="alert" className="mt-6 border-l-4 border-mandarin-orange bg-soft-pink p-4 text-sm text-onyx-black">

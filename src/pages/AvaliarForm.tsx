@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import CabecalhoAdmin from './admin/CabecalhoAdmin'
 import { supabase } from '../lib/supabaseClient'
 import {
   DESENVOLVIMENTO_OBRIGATORIO,
@@ -248,14 +249,14 @@ export default function AvaliarForm() {
     }
   }
 
-  if (carregando) return <p className="mx-auto max-w-3xl px-4 py-6 text-onyx-black">Carregando...</p>
+  if (carregando) return <p className="mx-auto max-w-3xl text-onyx-black">Carregando...</p>
   if (erro || !linha || !modelo || !semestre || !categoriaValida) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-6">
+      <div className="mx-auto max-w-3xl">
         <p role="alert" className="border-l-4 border-mandarin-orange bg-soft-pink/60 p-3 text-sm text-onyx-black">
           {erro ?? 'Não foi possível abrir esta avaliação.'}
         </p>
-        <Link to="/avaliar" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-gunmetal-gray underline underline-offset-4">
+        <Link to="/admin/avaliar" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-gunmetal-gray underline underline-offset-4">
           ← Meus alunos
         </Link>
       </div>
@@ -266,13 +267,16 @@ export default function AvaliarForm() {
 
   if (fase === 'enviada') {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8">
-        <h1 className="font-display text-[40px] leading-none text-gunmetal-gray md:text-[48px]">Avaliação enviada</h1>
-        <p className="mt-3 text-onyx-black">
+      <div className="mx-auto max-w-3xl">
+        <CabecalhoAdmin
+          titulo="Avaliação enviada"
+          trilha={[{ rotulo: 'Avaliar alunos', to: '/admin/avaliar' }, { rotulo: linha.nome }, { rotulo: 'Enviada' }]}
+        />
+        <p className="text-onyx-black">
           Obrigado! Sua avaliação de <strong>{linha.nome}</strong> ({titulo.titulo}) foi enviada e não pode mais ser alterada por você.
           Se precisar corrigir algo, fale com a coordenação.
         </p>
-        <Link to="/avaliar" className={`${botaoLaranja} mt-6 inline-flex items-center`}>
+        <Link to="/admin/avaliar" className={`${botaoLaranja} mt-6 inline-flex items-center`}>
           Voltar para meus alunos
         </Link>
       </div>
@@ -283,11 +287,12 @@ export default function AvaliarForm() {
 
   if (fase === 'revisao') {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-6">
-        <h1 className="font-display text-[40px] leading-none text-gunmetal-gray md:text-[48px]">Revisar e enviar</h1>
-        <p className="mt-2 text-sm text-onyx-black">
-          {linha.nome} · {titulo.titulo}. Depois de enviar, você não consegue mais editar.
-        </p>
+      <div className="mx-auto max-w-3xl">
+        <CabecalhoAdmin
+          titulo="Revisar e enviar"
+          trilha={[{ rotulo: 'Avaliar alunos', to: '/admin/avaliar' }, { rotulo: linha.nome }, { rotulo: 'Revisar e enviar' }]}
+          descricao={`${linha.nome} · ${titulo.titulo}. Depois de enviar, você não consegue mais editar.`}
+        />
 
         {modelo.grupos.map((g) => (
           <section key={g.id} className="mt-5" aria-labelledby={`rev-${g.id}`}>
@@ -344,15 +349,12 @@ export default function AvaliarForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-10 pt-4">
-      <Link to="/avaliar" className="inline-flex min-h-11 items-center text-sm font-bold text-gunmetal-gray underline underline-offset-4">
-        ← Meus alunos
-      </Link>
-
-      <p className="mt-1 text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">Semestre {semestre.codigo}</p>
-      <h1 className="font-display text-[40px] leading-none text-gunmetal-gray md:text-[48px]">
-        Avaliação Pedagógica: {titulo.titulo}
-      </h1>
+    <div className="mx-auto w-full max-w-3xl pb-10">
+      <CabecalhoAdmin
+        titulo={`Avaliação Pedagógica: ${titulo.titulo}`}
+        trilha={[{ rotulo: 'Avaliar alunos', to: '/admin/avaliar' }, { rotulo: linha.nome }]}
+        descricao={`Semestre ${semestre.codigo}`}
+      />
 
       <section className="mt-4 bg-soft-pink p-4" aria-label="Aluno avaliado">
         <p className="text-xs font-bold uppercase tracking-wide text-gunmetal-gray">Aluno(a)</p>

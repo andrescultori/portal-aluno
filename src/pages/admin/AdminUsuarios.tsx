@@ -1,372 +1,335 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import type { AllowedUser, Papel, Turma } from '../../types/database'
+import { useAuth } from '../../contexts/AuthContext'
+import Modal from '../../components/Modal'
+import { ROTULO_PAPEL } from '../../types/alunos'
+import CabecalhoAdmin from './CabecalhoAdmin'
 
-function detectarDelimitador(linha: string): string {
-  const virgulas = (linha.match(/,/g) ?? []).length
-  const pontoEVirgulas = (linha.match(/;/g) ?? []).length
-  return pontoEVirgulas > virgulas ? ';' : ','
+// "Equipe e acessos": só a equipe. Uma ação só cuida do login, das funções e da lista de quem pode ser
+// escolhido nas Atribuições (função do banco public.salvar_membro_equipe, migração 16).
+
+interface Membro {
+  email: string
+  nome: string
+  ativo: boolean
+  papeis: string[]
+  equipe_id: string | null
+  tem_login: boolean
 }
 
-function limparCampo(campo: string): string {
-  return campo.trim().replace(/^"(.*)"$/, '$1').trim()
-}
+// As quatro funções do dia a dia, com o que cada uma acessa.
+const FUNCOES_COMUNS: { papel: string; descricao: string }[] = [
+  {
+    papel: 'coordenacao',
+    descricao: 'Configura as avaliações, atribui tutores e mentores, vê resultados e o cadastro dos alunos, e cuida da equipe de tutores, mentores e líderes.',
+  },
+  { papel: 'tutor', descricao: 'Avalia (Tutoria) e lança as notas das atividades dos alunos que foram atribuídos a ele(a); vê o resultado desses alunos.' },
+  { papel: 'mentor', descricao: 'Avalia (Mentoria) os alunos que foram atribuídos a ele(a).' },
+  { papel: 'lider_casa', descricao: 'Avalia a Mentoria dos alunos da sua casa e vê os alunos da casa.' },
+]
+const FUNCOES_ADMIN = ['admin', 'secretaria', 'financeiro']
+const FUNCOES_AVALIADORAS = ['tutor', 'mentor', 'lider_casa']
 
-function parseCsv(texto: string): Record<string, string>[] {
-  // Excel em pt-BR exporta CSV com ; em vez de , (o padrão de fábrica do
-  // locale) e às vezes com um BOM no início do arquivo — trata os dois casos.
-  const semBom = texto.replace(/^﻿/, '')
-  const linhas = semBom.trim().split(/\r?\n/)
-  if (linhas.length < 2) return []
-  const delimitador = detectarDelimitador(linhas[0])
-  const cabecalho = linhas[0].split(delimitador).map((c) => limparCampo(c).toLowerCase())
-  return linhas.slice(1).map((linha) => {
-    const valores = linha.split(delimitador).map(limparCampo)
-    const registro: Record<string, string> = {}
-    cabecalho.forEach((chave, i) => {
-      registro[chave] = valores[i] ?? ''
-    })
-    return registro
-  })
+const campo =
+  'mt-1 block min-h-11 w-full min-w-0 rounded-sm border border-gunmetal-gray/40 bg-pure-white px-2 text-sm font-normal text-onyx-black'
+const botaoLaranja =
+  'min-h-11 rounded-sm bg-mandarin-orange px-4 text-sm font-bold text-onyx-black transition hover:bg-mandarin-orange-dark disabled:opacity-50'
+const botaoLinha =
+  'min-h-11 rounded-sm border-2 border-gunmetal-gray px-4 text-sm font-bold text-gunmetal-gray transition hover:bg-soft-pink/50 disabled:opacity-50'
+
+function traduzirErro(msg: string) {
+  if (msg.includes('Only an admin')) return 'Só um(a) administrador(a) pode conceder ou alterar essas funções (administrador, coordenação, secretaria, financeiro).'
+  if (msg.includes('cannot deactivate yourself')) return 'Você não pode se desativar nem tirar a sua própria função de administrador(a).'
+  if (msg.includes('student login')) return 'Este e-mail é de um login de aluno. Use outro e-mail para a equipe.'
+  if (msg.includes('Invalid e-mail')) return 'E-mail inválido.'
+  if (msg.includes('Name is required')) return 'Informe o nome.'
+  if (msg.includes('not allowed')) return 'Você não tem permissão para isto.'
+  return msg
 }
 
 export default function AdminUsuarios() {
-  const [usuarios, setUsuarios] = useState<AllowedUser[]>([])
-  const [turmas, setTurmas] = useState<Turma[]>([])
+  const { temPapel } = useAuth()
+  const souAdmin = temPapel('admin')
+  const [equipe, setEquipe] = useState<Membro[]>([])
   const [carregando, setCarregando] = useState(true)
-  const [mensagem, setMensagem] = useState<string | null>(null)
-  const [novo, setNovo] = useState({ nome: '', email: '', papel: 'aluno' as Papel, turma_id: '' })
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [editandoId, setEditandoId] = useState<string | null>(null)
-  const [edicao, setEdicao] = useState({ nome: '', email: '', papel: 'aluno' as Papel, turma_id: '' })
+  const [erro, setErro] = useState<string | null>(null)
+  const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
+  const [busca, setBusca] = useState('')
+  const [mostrarInativos, setMostrarInativos] = useState(false)
+  const [ocupado, setOcupado] = useState(false)
+  // Pessoa em edição (null = fechado). "novo" = formulário de pessoa nova.
+  const [form, setForm] = useState<null | { novo: boolean; email: string; nome: string; papeis: string[]; ativo: boolean }>(null)
 
-  async function carregar() {
-    setCarregando(true)
-    const [{ data: usuariosData }, { data: turmasData }] = await Promise.all([
-      supabase.from('allowed_users').select('*').order('nome'),
-      supabase
-        .from('turmas')
-        .select('id, nome, horario_inicio, horario_fim_presente, horario_fim_atraso, ativo')
-        .order('nome'),
-    ])
-    setUsuarios((usuariosData as AllowedUser[]) ?? [])
-    setTurmas((turmasData as Turma[]) ?? [])
+  const carregar = useCallback(async () => {
+    const { data, error } = await supabase.rpc('listar_equipe')
+    if (error) {
+      setErro(
+        error.message.includes('listar_equipe')
+          ? 'A gestão da equipe ainda não foi instalada no banco (migração 16).'
+          : `Não foi possível carregar a equipe: ${error.message}`,
+      )
+      setEquipe([])
+    } else {
+      setErro(null)
+      setEquipe((data as Membro[]) ?? [])
+    }
     setCarregando(false)
-  }
+  }, [])
 
   useEffect(() => {
     carregar()
-  }, [])
+  }, [carregar])
 
-  async function adicionarUsuario(e: React.FormEvent) {
-    e.preventDefault()
-    setMensagem(null)
-    const { error } = await supabase.from('allowed_users').insert({
-      nome: novo.nome,
-      email: novo.email.toLowerCase(),
-      papel: novo.papel,
-      turma_id: novo.turma_id || null,
+  // Coordenação só mexe em quem tem apenas funções de avaliador; o resto é com administrador(a).
+  const podeEditar = (m: Membro) =>
+    souAdmin || m.papeis.every((p) => FUNCOES_AVALIADORAS.includes(p) || p === 'emissor')
+
+  const visiveis = useMemo(() => {
+    const sem = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    const termo = sem(busca.trim())
+    return equipe.filter((m) => {
+      if (!mostrarInativos && !m.ativo) return false
+      return !termo || sem(m.nome).includes(termo) || sem(m.email).includes(termo)
     })
-    if (error) {
-      setMensagem(`Erro ao adicionar: ${error.message}`)
-      return
-    }
-    setNovo({ nome: '', email: '', papel: 'aluno', turma_id: '' })
-    carregar()
-  }
+  }, [equipe, busca, mostrarInativos])
 
-  async function alternarAtivo(usuario: AllowedUser) {
-    await supabase.from('allowed_users').update({ ativo: !usuario.ativo }).eq('id', usuario.id)
-    carregar()
-  }
-
-  async function removerUsuario(id: string) {
-    await supabase.from('allowed_users').delete().eq('id', id)
-    carregar()
-  }
-
-  function iniciarEdicao(usuario: AllowedUser) {
-    setEditandoId(usuario.id)
-    setEdicao({
-      nome: usuario.nome,
-      email: usuario.email,
-      papel: usuario.papel,
-      turma_id: usuario.turma_id ?? '',
+  async function salvar(dados: { email: string; nome: string; papeis: string[]; ativo: boolean }) {
+    setMensagem(null)
+    setOcupado(true)
+    // Preserva funções que a pessoa já tem e que esta tela não mostra para o usuário atual.
+    const atual = equipe.find((m) => m.email === dados.email.trim().toLowerCase())
+    const ocultas = (atual?.papeis ?? []).filter(
+      (p) => !FUNCOES_COMUNS.some((f) => f.papel === p) && !(souAdmin && FUNCOES_ADMIN.includes(p)) && p !== 'emissor',
+    )
+    const { error } = await supabase.rpc('salvar_membro_equipe', {
+      p_email: dados.email,
+      p_nome: dados.nome,
+      p_papeis: [...new Set([...dados.papeis, ...ocultas])].filter((p) => p !== 'emissor'),
+      p_ativo: dados.ativo,
     })
-  }
-
-  function cancelarEdicao() {
-    setEditandoId(null)
-  }
-
-  async function salvarEdicao(id: string) {
-    setMensagem(null)
-    const { error } = await supabase
-      .from('allowed_users')
-      .update({
-        nome: edicao.nome,
-        email: edicao.email.toLowerCase(),
-        papel: edicao.papel,
-        turma_id: edicao.turma_id || null,
-      })
-      .eq('id', id)
+    setOcupado(false)
     if (error) {
-      setMensagem(`Erro ao salvar: ${error.message}`)
-      return
+      setMensagem({ tipo: 'erro', texto: traduzirErro(error.message) })
+      return false
     }
-    setEditandoId(null)
-    carregar()
-  }
-
-  async function importarArquivo(e: React.ChangeEvent<HTMLInputElement>) {
-    const arquivo = e.target.files?.[0]
-    if (!arquivo) return
-    setMensagem(null)
-
-    if (!arquivo.name.toLowerCase().endsWith('.csv')) {
-      setMensagem('Formato não suportado. Exporte a planilha do Excel como CSV e envie novamente.')
-      if (fileRef.current) fileRef.current.value = ''
-      return
-    }
-
-    const texto = await arquivo.text()
-    const registros = parseCsv(texto)
-    if (registros.length === 0) {
-      setMensagem('Nenhum registro encontrado no arquivo. Verifique o cabeçalho: nome,email,papel,turma')
-      return
-    }
-
-    const linhas = registros
-      .filter((r) => r.email)
-      .map((r) => {
-        const turma = turmas.find((t) => t.nome.toLowerCase() === (r.turma ?? '').toLowerCase())
-        const papel: Papel = r.papel === 'equipe' ? 'equipe' : 'aluno'
-        return {
-          nome: r.nome || r.email,
-          email: r.email.toLowerCase(),
-          papel,
-          turma_id: turma?.id ?? null,
-          ativo: true,
-        }
-      })
-
-    if (linhas.length === 0) {
-      setMensagem(
-        'Nenhuma linha tinha um e-mail reconhecido. Confira se o cabeçalho da planilha é exatamente "nome,email,papel,turma" (com vírgula ou ponto e vírgula) e se a coluna de e-mail está preenchida.',
-      )
-      if (fileRef.current) fileRef.current.value = ''
-      return
-    }
-
-    const { error } = await supabase
-      .from('allowed_users')
-      .upsert(linhas, { onConflict: 'email' })
-
-    if (error) {
-      setMensagem(`Erro ao importar: ${error.message}`)
-    } else {
-      setMensagem(`${linhas.length} usuário(s) importado(s) com sucesso.`)
-      carregar()
-    }
-    if (fileRef.current) fileRef.current.value = ''
+    setMensagem({ tipo: 'ok', texto: `${dados.nome} — salvo.` })
+    await carregar()
+    return true
   }
 
   return (
-    <div>
-      <h1 className="mb-6 font-display text-[40px] leading-none text-gunmetal-gray">Usuários autorizados</h1>
+    <div className="mx-auto max-w-6xl">
+      <CabecalhoAdmin
+        titulo="Equipe e acessos"
+        trilha={[{ rotulo: 'Equipe' }]}
+        descricao="Quem trabalha com os alunos e o que cada função pode fazer. Quem é tutor(a), mentor(a) ou líder de casa aparece automaticamente nas listas de Atribuições."
+      />
 
-      <div className="mb-6 rounded-none border border-gunmetal-gray/25 bg-white p-5">
-        <h2 className="mb-2 font-medium text-gunmetal-gray">Importar whitelist (CSV)</h2>
-        <p className="mb-3 text-sm text-onyx-black">
-          Colunas esperadas: <code className="rounded bg-neutral-tint px-1">nome,email,papel,turma</code>
-          . Papel deve ser <code className="rounded bg-neutral-tint px-1">aluno</code> ou{' '}
-          <code className="rounded bg-neutral-tint px-1">equipe</code>. Se sua planilha estiver em
-          Excel, exporte como CSV antes de enviar — vírgula ou ponto e vírgula como separador,
-          tanto faz.
+      <section aria-labelledby="funcoes" className="mb-6">
+        <h2 id="funcoes" className="font-display text-2xl text-gunmetal-gray">
+          O que cada função acessa
+        </h2>
+        <dl className="mt-2 grid gap-px border border-gunmetal-gray/25 bg-gunmetal-gray/15 sm:grid-cols-2">
+          {FUNCOES_COMUNS.map((f) => (
+            <div key={f.papel} className="bg-pure-white p-3">
+              <dt className="font-bold text-gunmetal-gray">{ROTULO_PAPEL[f.papel]}</dt>
+              <dd className="mt-1 text-sm text-onyx-black">{f.descricao}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-2 text-xs text-muted-purple">
+          Quem tem mais de uma função soma os acessos. Administrador(a), Secretaria e Financeiro são configurados só por administradores.
         </p>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".csv"
-          onChange={importarArquivo}
-          className="block w-full max-w-full text-sm file:mr-3 file:rounded-sm file:border-0 file:bg-neutral-tint file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-gunmetal-gray"
-        />
-        {mensagem && <p className="mt-3 text-sm text-onyx-black">{mensagem}</p>}
+      </section>
+
+      {erro && (
+        <p role="alert" className="mb-4 border-l-4 border-mandarin-orange bg-soft-pink/60 p-3 text-sm text-onyx-black">
+          {erro}
+        </p>
+      )}
+
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-sm font-bold text-gunmetal-gray">
+            Buscar
+            <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome ou e-mail" className={`${campo} w-64`} />
+          </label>
+          <label className="flex min-h-11 items-center gap-2 text-sm text-onyx-black">
+            <input type="checkbox" checked={mostrarInativos} onChange={(e) => setMostrarInativos(e.target.checked)} className="h-5 w-5 accent-mandarin-orange" />
+            Mostrar inativos
+          </label>
+        </div>
+        <button
+          type="button"
+          disabled={!!erro}
+          onClick={() => setForm({ novo: true, email: '', nome: '', papeis: [], ativo: true })}
+          className={botaoLaranja}
+        >
+          Adicionar pessoa
+        </button>
       </div>
 
-      <form
-        onSubmit={adicionarUsuario}
-        className="mb-6 grid gap-3 rounded-none border border-gunmetal-gray/25 bg-white p-5 md:grid-cols-4"
-      >
-        <input
-          required
-          placeholder="Nome"
-          value={novo.nome}
-          onChange={(e) => setNovo({ ...novo, nome: e.target.value })}
-          className="rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
-        />
-        <input
-          required
-          type="email"
-          placeholder="E-mail"
-          value={novo.email}
-          onChange={(e) => setNovo({ ...novo, email: e.target.value })}
-          className="rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
-        />
-        <select
-          value={novo.papel}
-          onChange={(e) => setNovo({ ...novo, papel: e.target.value as Papel })}
-          className="rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
-        >
-          <option value="aluno">Aluno</option>
-          <option value="equipe">Equipe</option>
-        </select>
-        <select
-          value={novo.turma_id}
-          onChange={(e) => setNovo({ ...novo, turma_id: e.target.value })}
-          className="rounded-sm border border-gunmetal-gray/25 px-3 py-2 text-sm"
-        >
-          <option value="">Sem turma</option>
-          {turmas.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.nome}
-            </option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          className="rounded-sm bg-gunmetal-gray px-4 py-2 text-sm font-bold text-white hover:bg-gunmetal-gray-dark md:col-span-4"
-        >
-          Adicionar usuário
-        </button>
-      </form>
+      <div aria-live="polite" className="mb-3">
+        {mensagem && (
+          <p
+            role={mensagem.tipo === 'erro' ? 'alert' : 'status'}
+            className={`border-l-4 p-3 text-sm text-onyx-black ${
+              mensagem.tipo === 'erro' ? 'border-mandarin-orange bg-soft-pink/60' : 'border-gunmetal-gray bg-neutral-tint'
+            }`}
+          >
+            {mensagem.texto}
+          </p>
+        )}
+      </div>
 
       {carregando ? (
         <p className="text-onyx-black">Carregando...</p>
+      ) : visiveis.length === 0 ? (
+        <p className="border border-gunmetal-gray/25 p-4 text-sm text-onyx-black">Ninguém encontrado.</p>
       ) : (
-        <div className="overflow-x-auto rounded-none border border-gunmetal-gray/25 bg-white">
+        <div className="overflow-x-auto border border-gunmetal-gray/25 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="bg-neutral-tint text-onyx-black">
               <tr>
                 <th className="px-4 py-2">Nome</th>
                 <th className="px-4 py-2">E-mail</th>
-                <th className="px-4 py-2">Papel</th>
-                <th className="px-4 py-2">Turma</th>
-                <th className="px-4 py-2">Ativo</th>
-                <th className="px-4 py-2"></th>
+                <th className="px-4 py-2">Funções</th>
+                <th className="px-4 py-2">Situação</th>
+                <th className="px-4 py-2" />
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((u) =>
-                editandoId === u.id ? (
-                  <tr key={u.id} className="border-t border-gunmetal-gray/25">
+              {visiveis.map((m) => {
+                const editavel = podeEditar(m)
+                return (
+                  <tr key={m.email} className="border-t border-gunmetal-gray/25">
+                    <td className="px-4 py-2 font-bold text-gunmetal-gray">{m.nome}</td>
+                    <td className="px-4 py-2">{m.email}</td>
                     <td className="px-4 py-2">
-                      <input
-                        value={edicao.nome}
-                        onChange={(e) => setEdicao({ ...edicao, nome: e.target.value })}
-                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
-                      />
+                      {m.papeis.length === 0 ? (
+                        <span className="text-muted-purple">Sem função</span>
+                      ) : (
+                        <ul className="flex flex-wrap gap-1">
+                          {m.papeis.map((p) => (
+                            <li key={p} className="rounded-sm bg-soft-pink px-2 py-0.5 text-xs font-bold text-gunmetal-gray">
+                              {ROTULO_PAPEL[p] ?? p}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </td>
                     <td className="px-4 py-2">
-                      <input
-                        type="email"
-                        value={edicao.email}
-                        onChange={(e) => setEdicao({ ...edicao, email: e.target.value })}
-                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <select
-                        value={edicao.papel}
-                        onChange={(e) => setEdicao({ ...edicao, papel: e.target.value as Papel })}
-                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
-                      >
-                        <option value="aluno">Aluno</option>
-                        <option value="equipe">Equipe</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-2">
-                      <select
-                        value={edicao.turma_id}
-                        onChange={(e) => setEdicao({ ...edicao, turma_id: e.target.value })}
-                        className="w-full rounded-sm border border-gunmetal-gray/25 px-2 py-1 text-sm"
-                      >
-                        <option value="">Sem turma</option>
-                        {turmas.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.nome}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={() => alternarAtivo(u)}
-                        className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
-                          u.ativo ? 'bg-green-100 text-green-700' : 'bg-neutral-tint text-onyx-black'
-                        }`}
-                      >
-                        {u.ativo ? 'Ativo' : 'Inativo'}
-                      </button>
+                      <span className={`rounded-sm px-2 py-0.5 text-xs font-medium ${m.ativo ? 'bg-green-100 text-green-700' : 'bg-neutral-tint text-onyx-black'}`}>
+                        {m.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                      {!m.tem_login && <span className="ml-2 text-xs text-muted-purple">sem login</span>}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      <div className="flex justify-end gap-2">
+                      {editavel ? (
                         <button
-                          onClick={() => salvarEdicao(u.id)}
-                          className="text-xs font-medium text-gunmetal-gray hover:underline"
-                        >
-                          Salvar
-                        </button>
-                        <button
-                          onClick={cancelarEdicao}
-                          className="text-xs font-medium text-onyx-black hover:underline"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  <tr key={u.id} className="border-t border-gunmetal-gray/25">
-                    <td className="px-4 py-2">{u.nome}</td>
-                    <td className="px-4 py-2">{u.email}</td>
-                    <td className="px-4 py-2 capitalize">{u.papel}</td>
-                    <td className="px-4 py-2">
-                      {turmas.find((t) => t.id === u.turma_id)?.nome ?? '—'}
-                    </td>
-                    <td className="px-4 py-2">
-                      <button
-                        onClick={() => alternarAtivo(u)}
-                        className={`rounded-sm px-2 py-0.5 text-xs font-medium ${
-                          u.ativo ? 'bg-green-100 text-green-700' : 'bg-neutral-tint text-onyx-black'
-                        }`}
-                      >
-                        {u.ativo ? 'Ativo' : 'Inativo'}
-                      </button>
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <div className="flex justify-end gap-3">
-                        <button
-                          onClick={() => iniciarEdicao(u)}
-                          className="text-xs font-medium text-onyx-black hover:underline"
+                          type="button"
+                          onClick={() => setForm({ novo: false, email: m.email, nome: m.nome, papeis: m.papeis, ativo: m.ativo })}
+                          className="min-h-11 px-2 text-sm font-bold text-gunmetal-gray underline underline-offset-4"
                         >
                           Editar
                         </button>
-                        <button
-                          onClick={() => removerUsuario(u.id)}
-                          className="text-xs font-medium text-red-600 hover:underline"
-                        >
-                          Remover
-                        </button>
-                      </div>
+                      ) : (
+                        <span className="text-xs text-muted-purple">Só administrador(a)</span>
+                      )}
                     </td>
                   </tr>
-                ),
-              )}
+                )
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      <Modal aberto={form !== null} aoFechar={() => setForm(null)} titulo={form?.novo ? 'Adicionar pessoa' : 'Editar pessoa'}>
+        {form && (
+          <form
+            className="mt-4 space-y-4"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (await salvar(form)) setForm(null)
+            }}
+          >
+            <label className="block text-sm font-bold text-gunmetal-gray">
+              Nome
+              <input required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={campo} />
+            </label>
+            <label className="block text-sm font-bold text-gunmetal-gray">
+              E-mail (o mesmo da conta Google ou Microsoft)
+              <input
+                required
+                type="email"
+                value={form.email}
+                readOnly={!form.novo}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className={`${campo} ${form.novo ? '' : 'bg-neutral-tint'}`}
+              />
+            </label>
+
+            <fieldset>
+              <legend className="text-sm font-bold text-gunmetal-gray">Funções</legend>
+              {FUNCOES_COMUNS.map((f) => (
+                <label key={f.papel} className="flex min-h-11 items-center gap-3 text-sm text-onyx-black">
+                  <input
+                    type="checkbox"
+                    checked={form.papeis.includes(f.papel)}
+                    // Coordenação só concede funções de avaliador; "Coordenação" é com administrador(a).
+                    disabled={!souAdmin && !FUNCOES_AVALIADORAS.includes(f.papel)}
+                    onChange={(e) =>
+                      setForm({ ...form, papeis: e.target.checked ? [...form.papeis, f.papel] : form.papeis.filter((p) => p !== f.papel) })
+                    }
+                    className="h-5 w-5 accent-mandarin-orange"
+                  />
+                  {ROTULO_PAPEL[f.papel]}
+                </label>
+              ))}
+            </fieldset>
+
+            {souAdmin && (
+              <fieldset>
+                <legend className="text-sm font-bold text-gunmetal-gray">Outras funções (só administradores)</legend>
+                {FUNCOES_ADMIN.map((p) => (
+                  <label key={p} className="flex min-h-11 items-center gap-3 text-sm text-onyx-black">
+                    <input
+                      type="checkbox"
+                      checked={form.papeis.includes(p)}
+                      onChange={(e) => setForm({ ...form, papeis: e.target.checked ? [...form.papeis, p] : form.papeis.filter((x) => x !== p) })}
+                      className="h-5 w-5 accent-mandarin-orange"
+                    />
+                    {ROTULO_PAPEL[p]}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+
+            {!form.novo && (
+              <label className="flex min-h-11 items-center gap-3 text-sm text-onyx-black">
+                <input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.checked })} className="h-5 w-5 accent-mandarin-orange" />
+                Ativo (desmarque para tirar o acesso; as avaliações e atribuições antigas ficam guardadas)
+              </label>
+            )}
+
+            {form.papeis.some((p) => FUNCOES_AVALIADORAS.includes(p)) && (
+              <p className="border-l-4 border-gunmetal-gray bg-neutral-tint p-3 text-sm text-onyx-black">
+                Esta pessoa vai aparecer nas listas de Atribuições (Tutoria/Mentoria).
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" disabled={ocupado} className={botaoLaranja}>
+                Salvar
+              </button>
+              <button type="button" onClick={() => setForm(null)} className={botaoLinha}>
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   )
 }

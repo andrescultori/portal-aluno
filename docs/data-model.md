@@ -186,7 +186,28 @@ pending list. Before release they return nothing ("Resultados ainda não liberad
 assigned appear with `esperado = false`; a student/category with nobody gets one `sem_avaliador` row. Students: `Ativo`,
 plus anyone already evaluated in the semester. Never returns answers or comments.
 
-### 5.6 Screens (so far)
+### 5.6 Migration 15 — who is evaluated ("avaliável")
+
+`alunos.avaliavel(aluno, semestre)` is the **single place** for the rule. A student is evaluable in a semester when
+`status = 'Ativo'` **and** the plan of that semester's enrolment (falling back to the student's current plan) is not an
+agreement plan (`alunos.planos.convenio`, today "Convênio") — **or** the student already has an evaluation in that
+semester (drafts and submitted ones stay valid, so someone who graduates or locks after being evaluated keeps results).
+The owner's wording was "status other than Ativo and plan Convênio won't be evaluated"; it was implemented as
+*either* condition excludes (changing it means editing this one function).
+Applied in: `_avaliadores_esperados` (grades' pendências, coverage), `cobertura_semestre`, `meus_alunos_avaliar`,
+`pode_avaliar`. `alunos.avaliaveis_semestre(semestre)` (admin/coordenação) returns status, effective plan, `convenio`
+and the verdict per student for the screen filters.
+
+### 5.7 Migration 16 — staff management
+
+A staff member lives in `allowed_users` (login), `staff_roles` (functions) and `alunos.equipe` (evaluator list, feeds the
+Atribuições dropdowns). `public.listar_equipe()` (admin/coordenação) lists the union; `public.salvar_membro_equipe(email,
+nome, papeis, ativo)` creates/updates all three in one call. Admin: any function. Coordenação: only tutor / mentor /
+lider_casa, and only for people who hold nothing above that. Nobody is deleted (deactivation keeps assignments and
+evaluations). The legacy `emissor` role is never touched. Guards: cannot deactivate yourself or drop your own admin role;
+a student login cannot be turned into staff by accident.
+
+### 5.8 Screens (so far)
 
 | Route | Who | What |
 |---|---|---|
@@ -194,6 +215,10 @@ plus anyone already evaluated in the semester. Never returns answers or comments
 | `/admin/avaliacoes` — Atribuições | admin, coordenação | tutors/mentors per student, filters, bulk assignment by list or house |
 | `/admin/avaliacoes` — Períodos e liberação | admin, coordenação | evaluation window per category (Brasília time), release/unrelease/schedule the results (sets `liberada_em` on every window of the semester), pending-per-student summary before releasing |
 | `/admin/avaliacoes` — Quem já avaliou | admin, coordenação | coverage by evaluator or by student, filters, "copy pending list" |
-| `/avaliar`, `/avaliar/:categoria/:alunoId` | tutor, mentor, lider_casa | own students, evaluation form with autosave, review and submit |
+| `/admin/avaliacoes` — filter "Situação" | admin, coordenação | global (URL `?status=`) in Atribuições and Quem já avaliou; default = who will be evaluated |
+| `/admin/avaliar`, `/admin/avaliar/:categoria/:alunoId` | tutor, mentor, lider_casa | own students, evaluation form with autosave, review and submit (old `/avaliar…` URLs redirect) |
+| `/admin/usuarios` — Equipe e acessos | admin, coordenação | staff only: functions, active/inactive; reflected in the Atribuições dropdowns |
+| `/admin/turmas` — Turmas e alunos | all staff (RLS filters) | tabs: Alunos (list + filters), Acessos de alunos (portal logins), Turmas e QR Code |
+| `/admin/alunos/:id` | all staff (RLS filters) | student page: summary, status change with reason + history (admin/coordenação/secretaria), enrolments, personal data (where RLS allows) |
 
 Menus only *show* items per role; every read and write is authorized by RLS.

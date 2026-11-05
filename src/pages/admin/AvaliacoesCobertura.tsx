@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { textosCategoria } from '../../lib/avaliacoes'
-import type { CategoriaAvaliacao, Semestre } from '../../types/alunos'
+import type { CategoriaAvaliacao, Elegibilidade, Semestre } from '../../types/alunos'
+import FiltroStatus, { passa, type ValorFiltroStatus } from './FiltroStatus'
 
 const db = () => supabase.schema('alunos')
 
@@ -47,7 +48,19 @@ const ehPendente = (l: LinhaCobertura) =>
 
 type Visao = 'avaliador' | 'aluno'
 
-export default function AvaliacoesCobertura({ semestre }: { semestre: Semestre }) {
+export default function AvaliacoesCobertura({
+  semestre,
+  elegibilidade,
+  avisoElegibilidade,
+  statusFiltro,
+  aoMudarStatus,
+}: {
+  semestre: Semestre
+  elegibilidade: Map<string, Elegibilidade>
+  avisoElegibilidade: string | null
+  statusFiltro: ValorFiltroStatus
+  aoMudarStatus: (v: ValorFiltroStatus) => void
+}) {
   const [linhas, setLinhas] = useState<LinhaCobertura[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
@@ -91,10 +104,11 @@ export default function AvaliacoesCobertura({ semestre }: { semestre: Semestre }
     return linhas.filter((l) => {
       if (categoria && l.categoria !== categoria) return false
       if (casa && l.casa !== casa) return false
+      if (!passa(elegibilidade.get(l.aluno_id), statusFiltro)) return false
       if (termo && !sem(l.aluno).includes(termo) && !sem(l.avaliador ?? '').includes(termo)) return false
       return true
     })
-  }, [linhas, categoria, casa, busca])
+  }, [linhas, categoria, casa, busca, elegibilidade, statusFiltro])
 
   const contagem = useMemo(() => {
     const esperadas = filtradas.filter((l) => l.esperado === true)
@@ -200,7 +214,7 @@ export default function AvaliacoesCobertura({ semestre }: { semestre: Semestre }
         ))}
       </ul>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 border border-gunmetal-gray/25 p-4 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="mt-4 grid grid-cols-2 gap-3 border border-gunmetal-gray/25 p-4 lg:grid-cols-[1.3fr_1fr_1fr_1.2fr_1fr]">
         <label className="col-span-2 text-sm font-bold text-gunmetal-gray lg:col-span-1">
           Buscar aluno ou avaliador
           <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome" className={campo} />
@@ -224,11 +238,18 @@ export default function AvaliacoesCobertura({ semestre }: { semestre: Semestre }
             ))}
           </select>
         </label>
+        <FiltroStatus valor={statusFiltro} aoMudar={aoMudarStatus} classeCampo={campo} />
         <label className="col-span-2 flex min-h-11 items-center gap-2 self-end text-sm text-onyx-black lg:col-span-1">
           <input type="checkbox" checked={soPendentes} onChange={(e) => setSoPendentes(e.target.checked)} className="h-5 w-5 accent-mandarin-orange" />
           Só o que falta enviar
         </label>
       </div>
+
+      {avisoElegibilidade && (
+        <p role="status" className="mt-3 border-l-4 border-mandarin-orange bg-soft-pink/60 p-3 text-sm text-onyx-black">
+          {avisoElegibilidade}
+        </p>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div role="group" aria-label="Visão" className="flex">

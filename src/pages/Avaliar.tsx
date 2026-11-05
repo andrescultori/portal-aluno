@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import CabecalhoAdmin from './admin/CabecalhoAdmin'
 import { ChevronRight } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { descreverJanela, textosCategoria, type LinhaAvaliar } from '../lib/avaliacoes'
@@ -63,14 +64,12 @@ export default function Avaliar() {
   const janelas = [...new Map(linhas.map((l) => [l.categoria, l])).values()]
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6">
-      <p className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">
-        Avaliação pedagógica{semestre ? ` · ${semestre.codigo}` : ''}
-      </p>
-      <h1 className="font-display text-[40px] leading-none text-gunmetal-gray md:text-[48px]">Meus alunos</h1>
-      <p className="mt-2 text-sm text-onyx-black">
-        Uma avaliação por aluno(a). Você pode parar e continuar depois: as respostas são salvas sozinhas até você enviar.
-      </p>
+    <div className="mx-auto w-full max-w-3xl">
+      <CabecalhoAdmin
+        titulo="Avaliar alunos"
+        trilha={[{ rotulo: `Meus alunos${semestre ? ` · ${semestre.codigo}` : ''}` }]}
+        descricao="Uma avaliação por aluno(a). Você pode parar e continuar depois: as respostas são salvas sozinhas até você enviar."
+      />
 
       {carregando ? (
         <p className="mt-6 text-onyx-black">Carregando...</p>
@@ -130,7 +129,7 @@ export default function Avaliar() {
                     return (
                       <li key={`${l.aluno_id}-${l.categoria}`}>
                         <Link
-                          to={`/avaliar/${l.categoria}/${l.aluno_id}`}
+                          to={`/admin/avaliar/${l.categoria}/${l.aluno_id}`}
                           className="flex min-h-20 items-center gap-3 p-4 transition hover:bg-soft-pink/40"
                         >
                           <span className="min-w-0 flex-1">

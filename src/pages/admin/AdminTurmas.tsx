@@ -132,8 +132,6 @@ export default function AdminTurmas() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-[40px] leading-none text-gunmetal-gray">Turmas</h1>
-
       <form
         onSubmit={criar}
         className="mb-6 grid grid-cols-3 gap-3 rounded-none border border-gunmetal-gray/25 bg-white p-4 md:grid-cols-5 md:p-5"

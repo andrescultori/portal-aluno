@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import Footer from '../../components/Footer'
 import { useAuth } from '../../contexts/AuthContext'
-import { destinoAdmin, itensVisiveis } from './adminMenu'
+import { destinoAdmin, gruposAdmin, itemAtivo, itensVisiveis } from './adminMenu'
 
 function Menu_({ aoNavegar }: { aoNavegar?: () => void }) {
   const { pathname, search } = useLocation()
@@ -11,29 +11,37 @@ function Menu_({ aoNavegar }: { aoNavegar?: () => void }) {
   const { temPapel } = useAuth()
 
   return (
-    <nav aria-label="Administração" className="flex flex-1 flex-col">
-      <ul>
-        {itensVisiveis(temPapel).map((item) => {
-          const ativo = item.aba
-            ? pathname === item.caminho &&
-              (abaAtual === item.aba || !!item.abasExtras?.includes(abaAtual))
-            : pathname === item.caminho
-          return (
-            <li key={item.rotulo}>
-              <NavLink
-                to={destinoAdmin(item)}
-                onClick={aoNavegar}
-                aria-current={ativo ? 'page' : undefined}
-                className={`flex h-11 items-center border-l-4 px-5 text-sm text-white transition hover:bg-white/10 ${
-                  ativo ? 'border-mandarin-orange bg-white/12 font-bold' : 'border-transparent'
-                }`}
-              >
-                {item.rotulo}
-              </NavLink>
-            </li>
-          )
-        })}
-      </ul>
+    <nav aria-label="Administração" className="flex min-h-full flex-1 flex-col">
+      {gruposAdmin.map((grupo) => {
+        const itens = itensVisiveis(temPapel).filter((item) => item.grupo === grupo)
+        if (itens.length === 0) return null
+        return (
+          <div key={grupo} className="mb-3">
+            <p className="px-5 pb-1 pt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-soft-pink/80">
+              {grupo}
+            </p>
+            <ul>
+              {itens.map((item) => {
+                const ativo = itemAtivo(item, pathname, abaAtual)
+                return (
+                  <li key={item.rotulo}>
+                    <NavLink
+                      to={destinoAdmin(item)}
+                      onClick={aoNavegar}
+                      aria-current={ativo ? 'page' : undefined}
+                      className={`flex h-11 items-center border-l-4 px-5 text-sm text-white transition hover:bg-white/10 ${
+                        ativo ? 'border-mandarin-orange bg-white/12 font-bold' : 'border-transparent'
+                      }`}
+                    >
+                      {item.rotulo}
+                    </NavLink>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )
+      })}
 
       <Link
         to="/"
@@ -83,10 +91,12 @@ export default function AdminLayout() {
         <Link to="/admin" aria-label="Administração — início" className="block px-5 pb-6 pt-6">
           <img src="/logo/monocromia-branco.png" alt="UniMissional" className="w-[160px]" />
         </Link>
-        <p className="px-5 pb-2 text-xs font-bold uppercase tracking-[0.12em] text-soft-pink">
+        <p className="px-5 pb-3 text-xs font-bold uppercase tracking-[0.12em] text-soft-pink">
           Administração
         </p>
-        <Menu_ />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <Menu_ />
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

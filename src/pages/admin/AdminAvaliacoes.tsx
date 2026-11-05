@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import type {
   AlunoResumo,
   Atribuicao,
   CategoriaAvaliacao,
   Casa,
+  Elegibilidade,
   EquipeCasa,
   MembroEquipe,
   Semestre,
 } from '../../types/alunos'
-import { rotuloCategoria } from '../../types/alunos'
+import { ROTULO_PAPEL, rotuloCategoria } from '../../types/alunos'
+import Modal from '../../components/Modal'
+import CabecalhoAdmin from './CabecalhoAdmin'
+import FiltroStatus, { passa, useElegibilidade, valorValido, type ValorFiltroStatus } from './FiltroStatus'
 import AvaliacoesJanelas from './AvaliacoesJanelas'
 import AvaliacoesCobertura from './AvaliacoesCobertura'
 
@@ -35,15 +40,57 @@ function nomeAluno(a: AlunoResumo) {
 
 type Aba = 'semestre' | 'atribuicoes' | 'janelas' | 'cobertura'
 
+const ABAS: [Aba, string][] = [
+  ['semestre', 'Semestre'],
+  ['atribuicoes', 'Atribuições'],
+  ['janelas', 'Períodos e liberação'],
+  ['cobertura', 'Quem já avaliou'],
+]
+
 export default function AdminAvaliacoes() {
-  const [aba, setAba] = useState<Aba>('semestre')
+  // A aba e o semestre escolhidos ficam na URL: se a tela recarregar ou a pessoa voltar para ela,
+  // continua exatamente onde estava (em vez de cair de novo em "Semestre").
+  const [params, setParams] = useSearchParams()
+  const abaParam = params.get('aba')
+  const aba: Aba = ABAS.some(([v]) => v === abaParam) ? (abaParam as Aba) : 'semestre'
+  const semParam = params.get('sem')
+  const mudarParams = (mudar: (p: URLSearchParams) => void) =>
+    setParams(
+      (atual) => {
+        const p = new URLSearchParams(atual)
+        mudar(p)
+        return p
+      },
+      { replace: true },
+    )
+  const setAba = (nova: Aba) => mudarParams((p) => p.set('aba', nova))
+  // Filtro de situação do aluno, o mesmo nas abas Atribuições e Quem já avaliou.
+  const statusFiltro = valorValido(params.get('status'))
+  const setStatusFiltro = (v: ValorFiltroStatus) => mudarParams((p) => p.set('status', v))
+
   const [semestres, setSemestres] = useState<Semestre[]>([])
-  const [semestreId, setSemestreId] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
 
+  const semestreId = useMemo(
+    () =>
+      semestres.find((s) => s.codigo === semParam)?.id ??
+      semestres.find((s) => s.atual)?.id ??
+      semestres[0]?.id ??
+      '',
+    [semestres, semParam],
+  )
+  const setSemestreId = (id: string) => {
+    const codigo = semestres.find((s) => s.id === id)?.codigo
+    if (codigo) mudarParams((p) => p.set('sem', codigo))
+  }
+
   const carregarSemestres = useCallback(async (manter?: string) => {
-    setCarregando(true)
+    // Só mostra "Carregando..." na primeira carga; nas seguintes atualiza por baixo, sem desmontar a aba.
+    setSemestres((atuais) => {
+      if (atuais.length === 0) setCarregando(true)
+      return atuais
+    })
     const { data, error } = await db()
       .from('semestres')
       .select('id, codigo, inicio, fim, atual')
@@ -55,30 +102,34 @@ export default function AdminAvaliacoes() {
     }
     const lista = (data as Semestre[]) ?? []
     setSemestres(lista)
-    setSemestreId((atual) => {
-      const alvo = manter ?? atual
-      if (alvo && lista.some((s) => s.id === alvo)) return alvo
-      return lista.find((s) => s.atual)?.id ?? lista[0]?.id ?? ''
-    })
+    const alvo = manter ? lista.find((s) => s.id === manter) : undefined
+    if (alvo) {
+      setParams(
+        (atual) => {
+          const p = new URLSearchParams(atual)
+          p.set('sem', alvo.codigo)
+          return p
+        },
+        { replace: true },
+      )
+    }
     setCarregando(false)
-  }, [])
+  }, [setParams])
 
   useEffect(() => {
     carregarSemestres()
   }, [carregarSemestres])
 
   const semestre = semestres.find((s) => s.id === semestreId) ?? null
+  const elegibilidade = useElegibilidade(semestre?.id)
 
   return (
     <div className="mx-auto max-w-6xl">
-      <p className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">Administração</p>
-      <h1 className="font-display text-[40px] leading-none text-gunmetal-gray md:text-[48px]">
-        Avaliações
-      </h1>
-      <p className="mt-2 max-w-3xl text-sm text-onyx-black">
-        Defina o semestre, quem avalia quem, o período de avaliação e quando os alunos veem os resultados.
-        Cada avaliador só vê os alunos que você atribuir aqui.
-      </p>
+      <CabecalhoAdmin
+        titulo="Avaliações"
+        trilha={[{ rotulo: 'Avaliações', to: '/admin/avaliacoes' }, { rotulo: ABAS.find(([v]) => v === aba)?.[1] ?? 'Semestre' }]}
+        descricao="Defina o semestre, quem avalia quem, o período de avaliação e quando os alunos veem os resultados. Cada avaliador só vê os alunos que você atribuir aqui."
+      />
 
       {erro && (
         <p role="alert" className="mt-4 border-l-4 border-mandarin-orange bg-soft-pink/60 p-3 text-sm text-onyx-black">
@@ -87,14 +138,7 @@ export default function AdminAvaliacoes() {
       )}
 
       <div role="tablist" aria-label="Seções" className="mt-6 flex flex-wrap gap-2 border-b border-gunmetal-gray/25">
-        {(
-          [
-            ['semestre', 'Semestre'],
-            ['atribuicoes', 'Atribuições'],
-            ['janelas', 'Períodos e liberação'],
-            ['cobertura', 'Quem já avaliou'],
-          ] as [Aba, string][]
-        ).map(([valor, rotulo]) => (
+        {ABAS.map(([valor, rotulo]) => (
           <button
             key={valor}
             role="tab"
@@ -125,9 +169,25 @@ export default function AdminAvaliacoes() {
         ) : semestre ? (
           <>
             <SeletorSemestre semestres={semestres} valor={semestreId} aoEscolher={setSemestreId} />
-            {aba === 'atribuicoes' && <SecaoAtribuicoes semestre={semestre} />}
+            {aba === 'atribuicoes' && (
+              <SecaoAtribuicoes
+                semestre={semestre}
+                elegibilidade={elegibilidade.mapa}
+                avisoElegibilidade={elegibilidade.aviso}
+                statusFiltro={statusFiltro}
+                aoMudarStatus={setStatusFiltro}
+              />
+            )}
             {aba === 'janelas' && <AvaliacoesJanelas semestre={semestre} />}
-            {aba === 'cobertura' && <AvaliacoesCobertura semestre={semestre} />}
+            {aba === 'cobertura' && (
+              <AvaliacoesCobertura
+                semestre={semestre}
+                elegibilidade={elegibilidade.mapa}
+                avisoElegibilidade={elegibilidade.aviso}
+                statusFiltro={statusFiltro}
+                aoMudarStatus={setStatusFiltro}
+              />
+            )}
           </>
         ) : (
           <p className="border border-gunmetal-gray/25 p-4 text-sm text-onyx-black">
@@ -181,6 +241,7 @@ function SecaoSemestre({
   const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const [diasLetivos, setDiasLetivos] = useState<number | null>(null)
   const [ocupado, setOcupado] = useState(false)
+  const [modalNovo, setModalNovo] = useState(false)
 
   useEffect(() => {
     setEdicao({ inicio: semestre?.inicio ?? '', fim: semestre?.fim ?? '' })
@@ -226,6 +287,7 @@ function SecaoSemestre({
       if (erroAtual) setMensagem({ tipo: 'erro', texto: `Semestre criado, mas não foi possível marcá-lo como atual: ${erroAtual.message}` })
     }
     setNovo({ codigo: '', inicio: '', fim: '', atual: true })
+    setModalNovo(false)
     await aoMudar(data.id)
     setOcupado(false)
     setMensagem((m) => m ?? { tipo: 'ok', texto: 'Semestre criado. Agora gere os dias letivos.' })
@@ -331,9 +393,17 @@ function SecaoSemestre({
           </ul>
         )}
 
-        <form onSubmit={criar} className="mt-6 border border-gunmetal-gray/25 p-4">
-          <h3 className="font-display text-2xl text-gunmetal-gray">Novo semestre</h3>
-          <div className="mt-2 grid grid-cols-2 gap-3">
+      </section>
+
+      <section aria-labelledby="sem-detalhe">
+        <div className="mb-3 flex justify-end">
+          <button type="button" onClick={() => setModalNovo(true)} className={botaoLaranja}>
+            Novo semestre
+          </button>
+        </div>
+        <Modal aberto={modalNovo} aoFechar={() => setModalNovo(false)} titulo="Novo semestre">
+        <form onSubmit={criar}>
+          <div className="mt-4 grid grid-cols-2 gap-3">
             <label className="col-span-2 text-sm font-bold text-gunmetal-gray sm:col-span-1">
               Código
               <input
@@ -365,13 +435,16 @@ function SecaoSemestre({
               Marcar como semestre atual
             </label>
           </div>
-          <button type="submit" disabled={ocupado} className={`${botaoLaranja} mt-3`}>
-            Criar semestre
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="submit" disabled={ocupado} className={botaoLaranja}>
+              Criar semestre
+            </button>
+            <button type="button" onClick={() => setModalNovo(false)} className={botaoLinha}>
+              Cancelar
+            </button>
+          </div>
         </form>
-      </section>
-
-      <section aria-labelledby="sem-detalhe">
+        </Modal>
         <h2 id="sem-detalhe" className="font-display text-3xl text-gunmetal-gray">
           {semestre ? `Semestre ${semestre.codigo}` : 'Semestre'}
         </h2>
@@ -441,7 +514,19 @@ function SecaoSemestre({
 
 type Filtro = 'todos' | 'sem_tutor' | 'sem_mentor'
 
-function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
+function SecaoAtribuicoes({
+  semestre,
+  elegibilidade,
+  avisoElegibilidade,
+  statusFiltro,
+  aoMudarStatus,
+}: {
+  semestre: Semestre
+  elegibilidade: Map<string, Elegibilidade>
+  avisoElegibilidade: string | null
+  statusFiltro: ValorFiltroStatus
+  aoMudarStatus: (v: ValorFiltroStatus) => void
+}) {
   const [alunos, setAlunos] = useState<AlunoResumo[]>([])
   const [casas, setCasas] = useState<Casa[]>([])
   const [equipe, setEquipe] = useState<MembroEquipe[]>([])
@@ -474,9 +559,12 @@ function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
     ])
     const falha = a.error || c.error || e.error || ec.error || at.error
     if (falha) setMensagem({ tipo: 'erro', texto: `Não foi possível carregar os dados: ${falha.message}` })
+    // Funções de cada pessoa (Tutor, Mentor...) para rotular as listas; se a consulta ainda não existe, segue sem.
+    const { data: lista } = await supabase.rpc('listar_equipe')
+    const papeisPorEmail = new Map(((lista as { email: string; papeis: string[] }[] | null) ?? []).map((m) => [m.email, m.papeis]))
     setAlunos((a.data as AlunoResumo[]) ?? [])
     setCasas((c.data as Casa[]) ?? [])
-    setEquipe((e.data as MembroEquipe[]) ?? [])
+    setEquipe(((e.data as MembroEquipe[]) ?? []).map((m) => ({ ...m, papeis: papeisPorEmail.get(m.email) })))
     setEquipeCasas((ec.data as EquipeCasa[]) ?? [])
     setAtribuicoes((at.data as Atribuicao[]) ?? [])
     setSelecionados(new Set())
@@ -524,18 +612,20 @@ function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
         if (!nome.includes(termo)) return false
       }
       if (casaFiltro && String(a.casa_id ?? '') !== casaFiltro) return false
+      if (!passa(elegibilidade.get(a.id), statusFiltro)) return false
       const item = porAluno.get(a.id)
       if (filtro === 'sem_tutor' && (item?.tutoria.length ?? 0) > 0) return false
       if (filtro === 'sem_mentor' && (item?.mentoria.length ?? 0) > 0) return false
       return true
     })
-  }, [alunos, busca, casaFiltro, filtro, porAluno])
+  }, [alunos, busca, casaFiltro, filtro, porAluno, elegibilidade, statusFiltro])
 
   const resumo = useMemo(() => {
-    const semTutor = alunos.filter((a) => (porAluno.get(a.id)?.tutoria.length ?? 0) === 0).length
-    const semMentor = alunos.filter((a) => (porAluno.get(a.id)?.mentoria.length ?? 0) === 0).length
-    return { total: alunos.length, semTutor, semMentor }
-  }, [alunos, porAluno])
+    const escopo = alunos.filter((a) => passa(elegibilidade.get(a.id), statusFiltro))
+    const semTutor = escopo.filter((a) => (porAluno.get(a.id)?.tutoria.length ?? 0) === 0).length
+    const semMentor = escopo.filter((a) => (porAluno.get(a.id)?.mentoria.length ?? 0) === 0).length
+    return { total: escopo.length, semTutor, semMentor }
+  }, [alunos, porAluno, elegibilidade, statusFiltro])
 
   function alternar(id: string) {
     setSelecionados((atual) => {
@@ -613,6 +703,11 @@ function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
         </p>
       ) : (
         <>
+          {avisoElegibilidade && (
+            <p role="status" className="mt-4 border-l-4 border-mandarin-orange bg-soft-pink/60 p-3 text-sm text-onyx-black">
+              {avisoElegibilidade}
+            </p>
+          )}
           <ul className="mt-4 grid grid-cols-3 gap-3 text-center sm:max-w-xl">
             <li className="bg-gunmetal-gray p-3 text-white">
               <span className="block font-display text-4xl font-bold leading-none">{resumo.total}</span>
@@ -628,7 +723,7 @@ function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
             </li>
           </ul>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 border border-gunmetal-gray/25 p-4 lg:grid-cols-[1.4fr_1fr_1fr]">
+          <div className="mt-4 grid grid-cols-2 gap-3 border border-gunmetal-gray/25 p-4 lg:grid-cols-[1.3fr_1fr_1.2fr_1fr]">
             <label className="col-span-2 text-sm font-bold text-gunmetal-gray lg:col-span-1">
               Buscar aluno
               <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome" className={campo} />
@@ -644,6 +739,7 @@ function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
                 ))}
               </select>
             </label>
+            <FiltroStatus valor={statusFiltro} aoMudar={aoMudarStatus} classeCampo={campo} />
             <label className="text-sm font-bold text-gunmetal-gray">
               Mostrar
               <select value={filtro} onChange={(e) => setFiltro(e.target.value as Filtro)} className={campo}>
@@ -664,11 +760,7 @@ function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
                 Pessoa
                 <select value={lote.equipeId} onChange={(e) => setLote({ ...lote, equipeId: e.target.value })} className={campo}>
                   <option value="">Escolha…</option>
-                  {equipe.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.nome}
-                    </option>
-                  ))}
+                  <OpcoesEquipe equipe={equipe} categoria={lote.categoria} />
                 </select>
               </label>
               <label className="col-span-2 text-sm font-bold text-gunmetal-gray lg:col-span-1">
@@ -756,6 +848,7 @@ function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
 
                     <Celula
                       titulo="Tutoria"
+                      categoria="tutoria"
                       atribuicoes={item?.tutoria ?? []}
                       equipe={equipe}
                       equipePorId={equipePorId}
@@ -766,6 +859,7 @@ function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
                     />
                     <Celula
                       titulo="Mentoria"
+                      categoria="mentoria"
                       atribuicoes={item?.mentoria ?? []}
                       equipe={equipe}
                       equipePorId={equipePorId}
@@ -790,8 +884,62 @@ function SecaoAtribuicoes({ semestre }: { semestre: Semestre }) {
   )
 }
 
+// Lista de pessoas para escolher: quem tem a função certa (Tutor para Tutoria, Mentor para Mentoria) vem primeiro.
+function OpcoesEquipe({
+  equipe,
+  categoria,
+  excluir,
+}: {
+  equipe: MembroEquipe[]
+  categoria: CategoriaAvaliacao
+  excluir?: Set<string>
+}) {
+  const funcao = categoria === 'tutoria' ? 'tutor' : 'mentor'
+  const lista = equipe.filter((m) => !excluir?.has(m.id))
+  const rotulo = (m: MembroEquipe) =>
+    m.papeis && m.papeis.length > 0
+      ? `${m.nome} (${m.papeis.filter((p) => p in ROTULO_PAPEL && p !== 'emissor').map((p) => ROTULO_PAPEL[p]).join(', ')})`
+      : m.nome
+  if (!lista.some((m) => m.papeis !== undefined)) {
+    return (
+      <>
+        {lista.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.nome}
+          </option>
+        ))}
+      </>
+    )
+  }
+  const certos = lista.filter((m) => m.papeis?.includes(funcao))
+  const outros = lista.filter((m) => !m.papeis?.includes(funcao))
+  return (
+    <>
+      {certos.length > 0 && (
+        <optgroup label={categoria === 'tutoria' ? 'Tutores' : 'Mentores'}>
+          {certos.map((m) => (
+            <option key={m.id} value={m.id}>
+              {rotulo(m)}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {outros.length > 0 && (
+        <optgroup label="Outras funções">
+          {outros.map((m) => (
+            <option key={m.id} value={m.id}>
+              {rotulo(m)}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </>
+  )
+}
+
 function Celula({
   titulo,
+  categoria,
   atribuicoes,
   equipe,
   equipePorId,
@@ -802,6 +950,7 @@ function Celula({
   extra,
 }: {
   titulo: string
+  categoria: CategoriaAvaliacao
   atribuicoes: Atribuicao[]
   equipe: MembroEquipe[]
   equipePorId: Map<string, MembroEquipe>
@@ -850,13 +999,7 @@ function Celula({
         className="mt-1 block min-h-11 w-full min-w-0 rounded-sm border border-gunmetal-gray/40 bg-pure-white px-2 text-sm text-onyx-black"
       >
         <option value="">+ Adicionar…</option>
-        {equipe
-          .filter((m) => !jaAtribuidos.has(m.id))
-          .map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.nome}
-            </option>
-          ))}
+        <OpcoesEquipe equipe={equipe} categoria={categoria} excluir={jaAtribuidos} />
       </select>
     </div>
   )

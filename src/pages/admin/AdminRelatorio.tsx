@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { horaLocal } from '../../lib/datas'
 import StatusSelo, { statusRotulo } from '../../components/StatusSelo'
 import type { AttendanceStatus, Turma } from '../../types/database'
+import CabecalhoAdmin from './CabecalhoAdmin'
 
 interface LinhaRelatorio {
   id: string
@@ -134,14 +135,7 @@ export default function AdminRelatorio() {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">
-            Administração
-          </p>
-          <h1 className="font-display text-[40px] leading-none text-gunmetal-gray md:text-[48px]">
-            Relatório de presença
-          </h1>
-        </div>
+        <CabecalhoAdmin titulo="Relatório de presença" trilha={[{ rotulo: 'Alunos' }, { rotulo: 'Presença' }]} />
         <button
           onClick={exportarExcel}
           disabled={visiveis.length === 0}
