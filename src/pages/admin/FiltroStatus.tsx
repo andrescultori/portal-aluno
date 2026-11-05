@@ -52,7 +52,7 @@ export function useElegibilidade(semestreId: string | undefined) {
       return
     }
     setAviso(null)
-    setMapa(new Map(((data as Elegibilidade[]) ?? []).map((e) => [e.aluno_id, e])))
+    setMapa(new Map((Array.isArray(data) ? (data as Elegibilidade[]) : []).map((e) => [e.aluno_id, e])))
   }, [semestreId])
 
   useEffect(() => {
