@@ -131,8 +131,8 @@ insert into alunos.atividade_notas (atividade_id, aluno_id, ativ, quiz) values
 -- project: 8, 9, 8.5 with equal weights -> 8.5
 insert into alunos.projeto_notas (semestre_id, aluno_id, codigo, nota) values
   ('50000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-00000000000a', 'projeto', 8),
-  ('50000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-00000000000a', 'apresentacao', 9),
-  ('50000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-00000000000a', 'trabalho_escrito', 8.5);
+  ('50000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-00000000000a', 'avaliacao_pares', 9),
+  ('50000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-00000000000a', 'escrita', 8.5);
 -- attendance: 10 class days; Ana: 8 present, 1 late, 1 absent -> (8 + 0.5) / 10 * 10 = 8.5
 select alunos.gerar_dias_letivos('50000000-0000-0000-0000-000000000002');
 insert into public.turmas (id, nome, horario_inicio, horario_fim_presente, horario_fim_atraso)

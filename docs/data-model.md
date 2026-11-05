@@ -107,10 +107,12 @@ are empty — null is never 0**; a missing component counts as 0 once the other 
 `avg(final)` over the activities the student has a grade for (`alunos._atividades_calc`; also reports total/graded counts).
 
 **Final project.** `projeto_componentes(semestre_id, codigo, nome, peso)` — seeded for every new semester by a trigger with
-three components (`projeto`, `apresentacao`, `trabalho_escrito`) and **equal weights (TODO: owner to confirm the real
-weights)**; coordenação/admin edit them (UI, no code change). `projeto_notas` (0..10). `Projeto` = weighted mean of the
-components that have a grade, weights renormalised over those; the missing component codes are returned
-(`alunos._projeto_calc`); zero-weight components are ignored; no grades → null.
+the three definitive components (`projeto` "Projeto", `escrita` "Escrita", `avaliacao_pares` "Avaliação de pares") and equal
+weights, i.e. the owner's formula **Projeto = (Escrita + Projeto + Avaliação de pares) / 3** (migration 20 renamed the
+provisional `apresentacao` / `trabalho_escrito`); coordenação/admin can still edit the weights (UI, no code change).
+`projeto_notas` (0..10). `Projeto` = weighted mean of the components that have a grade, weights renormalised over those; the
+missing component codes are returned (`alunos._projeto_calc`) and the result is flagged partial until all three exist;
+zero-weight components are ignored; no grades → null.
 
 **Who edits.** Grades (`atividade_notas`, `projeto_notas`): **admin and the student's tutor** (tutoria assignment of that
 semester); coordenação reads but cannot edit; secretaria/financeiro/student read nothing. Every change is audited
@@ -231,7 +233,14 @@ check-in, each with `justificada` and `motivo`. Same rule as `_presenca_calc`, s
 grade; a student without a login linked to the check-in gets no rows. It exists so a tutor can justify absences without
 remembering the dates.
 
-### 5.11 Screens (so far)
+### 5.11 Migration 20 — definitive project components
+
+Owner's formula: the final-project grade is the plain average of three components. Existing components were renamed for
+every semester (`trabalho_escrito` → `escrita` "Escrita", `apresentacao` → `avaliacao_pares` "Avaliação de pares"); the
+grades follow the new code (the foreign key got `on update cascade`); weights untouched; new semesters are seeded with the
+three. Idempotent (tested on a database that already had grades under the old codes).
+
+### 5.12 Screens (so far)
 
 | Route | Who | What |
 |---|---|---|
@@ -245,7 +254,7 @@ remembering the dates.
 | `/admin/turmas` — Turmas e alunos | all staff (RLS filters) | tabs: Alunos (list + filters), Acessos de alunos (portal logins), Turmas e QR Code |
 | `/admin/relatorio` — Presença | all staff read; admin/coordenação/secretaria edit status; admin/coordenação delete | each line has Editar / Excluir with a mandatory reason (migration 17), audited |
 | `/admin/avaliacoes` — Semestre › Dias sem aula | admin, coordenação, secretaria | list / undo / add days without class (`dias_letivos.aula = false`, with reason); "Buscar no Google Agenda" suggests national holidays (Google's Brazilian holiday calendar, pre-checked), the school calendar (`VITE_GOOGLE_CALENDAR_ID`, pre-checked when the title says feriado/recesso/sem aula) and bridge days (holiday on Tuesday → Monday, on Thursday → Friday; never pre-checked). Uses the public calendar API key; no migration |
-| `/admin/notas` — Notas e presença | tabs per role: Atividades and Projeto final (admin, coordenação, tutor); Presença e faltas (+ secretaria) | **Atividades:** pick the class, type `Atividade` (0–9) and `Quiz` (0–1) per student with the keyboard (Enter/↑↓), the DB computes the class grade and the average; coordenação/admin create and rename activities (never deleted). **Projeto final:** components and weights (coordenação/admin; new components start at weight 0; a banner warns while all weights are still equal = provisional), grades 0–10 (2 decimals) per component, the project grade computed in the DB. **Presença e faltas:** summary + the student's absent days with *Justificar* (reason) / *Desfazer*. Tutors see only their Tutoria students; coordenação reads but cannot edit grades (RLS); the DB re-checks every write |
+| `/admin/notas` — Notas e presença | tabs per role: Atividades and Projeto final (admin, coordenação, tutor); Presença e faltas (+ secretaria) | **Atividades:** pick the class, type `Atividade` (0–9) and `Quiz` (0–1) per student with the keyboard (Enter/↑↓), the DB computes the class grade and the average; coordenação/admin create and rename activities (never deleted). **Projeto final:** components and weights (coordenação/admin; new components start at weight 0; a note explains that equal weights = plain average of the three), grades 0–10 (2 decimals) per component, the project grade computed in the DB. **Presença e faltas:** summary + the student's absent days with *Justificar* (reason) / *Desfazer*. Tutors see only their Tutoria students; coordenação reads but cannot edit grades (RLS); the DB re-checks every write |
 | `/admin/resultados` | admin, coordenação | per-semester grades for every student from `alunos.notas_semestre` (same "Situação" filter, house, search, sort), partial results flagged, per-student detail (what is missing, evaluators sent, per-question means via `perguntas_aluno`), CSV/Excel export |
 | `/admin/alunos/:id` | all staff (RLS filters) | student page: summary, status change with reason + history (admin/coordenação/secretaria), enrolments, personal data (where RLS allows), and for admin/coordenação a "Desenvolvimento" section (semester results + cycle averages from `historico_aluno` / `medias_ciclo_aluno`) |
 
