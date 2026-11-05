@@ -492,6 +492,9 @@ export default function AvaliarForm() {
           onBlur={() => gravarTextos()}
           className={areaTexto}
         />
+        {faltaDesenvolvimento && !somenteLeitura && (
+          <p className="mt-1 text-sm text-muted-purple">Obrigatório para enviar.</p>
+        )}
       </section>
 
       <div aria-live="polite">
@@ -513,7 +516,7 @@ export default function AvaliarForm() {
                 ? `Faltam ${perguntas.length - respondidas} pergunta(s) para responder.`
                 : precisaObservacao && observacaoVazia
                   ? 'Escreva a observação para poder enviar.'
-                  : 'Preencha o campo obrigatório para poder enviar.'}
+                  : 'Escreva o desenvolvimento do(a) aluno(a) para poder enviar.'}
             </p>
           )}
         </div>

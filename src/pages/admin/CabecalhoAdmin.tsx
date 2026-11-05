@@ -32,7 +32,7 @@ export default function CabecalhoAdmin({
             return (
               <li key={`${m.rotulo}-${i}`} className="flex items-center gap-1">
                 {m.to && !ultimo ? (
-                  <Link to={m.to} className="inline-flex min-h-8 items-center font-bold text-gunmetal-gray underline underline-offset-4 hover:text-mandarin-orange">
+                  <Link to={m.to} className="inline-flex min-h-11 items-center font-bold text-gunmetal-gray underline underline-offset-4 hover:text-mandarin-orange">
                     {m.rotulo}
                   </Link>
                 ) : (
