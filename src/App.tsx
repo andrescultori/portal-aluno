@@ -1,6 +1,7 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import Shell from './components/Shell'
 import ProtectedRoute from './components/ProtectedRoute'
+import RestauraRolagem from './components/RestauraRolagem'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import ManualDoAluno from './pages/ManualDoAluno'
@@ -24,9 +25,15 @@ import AdminAvaliacoes from './pages/admin/AdminAvaliacoes'
 // Quem pode abrir as telas de avaliação (a autorização real é do banco, por atribuição).
 const PAPEIS_AVALIADORES = ['tutor', 'mentor', 'lider_casa']
 
+function RedirecionaAvaliar() {
+  const { categoria, alunoId } = useParams()
+  return <Navigate to={`/admin/avaliar/${categoria}/${alunoId}`} replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <RestauraRolagem />
       <Shell>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -71,22 +78,9 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/avaliar"
-            element={
-              <ProtectedRoute papeis={PAPEIS_AVALIADORES}>
-                <Avaliar />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/avaliar/:categoria/:alunoId"
-            element={
-              <ProtectedRoute papeis={PAPEIS_AVALIADORES}>
-                <AvaliarForm />
-              </ProtectedRoute>
-            }
-          />
+          {/* Endereços antigos da avaliação: agora ficam dentro do Admin (com o menu lateral). */}
+          <Route path="/avaliar" element={<Navigate to="/admin/avaliar" replace />} />
+          <Route path="/avaliar/:categoria/:alunoId" element={<RedirecionaAvaliar />} />
           <Route
             path="/links/:sectionId"
             element={
@@ -117,6 +111,22 @@ export default function App() {
             <Route path="turmas" element={<AdminTurmas />} />
             <Route path="conteudo" element={<AdminConteudo />} />
             <Route path="relatorio" element={<AdminRelatorio />} />
+            <Route
+              path="avaliar"
+              element={
+                <ProtectedRoute papeis={PAPEIS_AVALIADORES}>
+                  <Avaliar />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="avaliar/:categoria/:alunoId"
+              element={
+                <ProtectedRoute papeis={PAPEIS_AVALIADORES}>
+                  <AvaliarForm />
+                </ProtectedRoute>
+              }
+            />
             <Route path="avisos" element={<AdminAvisos />} />
             <Route
               path="avaliacoes"

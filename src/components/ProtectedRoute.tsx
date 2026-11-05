@@ -16,7 +16,9 @@ export default function ProtectedRoute({
   const { session, perfil, loading, temPapel } = useAuth()
   const location = useLocation()
 
-  if (loading) {
+  // Só mostra "Carregando" na primeira carga. Se já temos o perfil, uma nova verificação de
+  // sessão em segundo plano não pode desmontar a tela (perderia o que a pessoa digitou).
+  if (loading && !perfil) {
     return <div className="flex flex-1 items-center justify-center text-muted-purple">Carregando...</div>
   }
 

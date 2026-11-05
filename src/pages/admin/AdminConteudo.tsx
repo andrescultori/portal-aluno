@@ -10,6 +10,7 @@ import type {
   LinkSectionItem,
   ManualDoAluno,
 } from '../../types/database'
+import CabecalhoAdmin from './CabecalhoAdmin'
 
 type Aba = 'hero' | 'manual' | 'classroom' | 'links' | 'paginas'
 
@@ -30,7 +31,10 @@ export default function AdminConteudo() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-[40px] leading-none text-gunmetal-gray">Conteúdo do site</h1>
+      <CabecalhoAdmin
+        titulo="Conteúdo do site"
+        trilha={[{ rotulo: abas.find((a) => a.id === aba)?.label ?? 'Destaque da home' }]}
+      />
 
       <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gunmetal-gray/25">
         {abas.map((a) => (

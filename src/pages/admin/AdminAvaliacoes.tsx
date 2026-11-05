@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import type {
   AlunoResumo,
@@ -10,6 +11,8 @@ import type {
   Semestre,
 } from '../../types/alunos'
 import { rotuloCategoria } from '../../types/alunos'
+import Modal from '../../components/Modal'
+import CabecalhoAdmin from './CabecalhoAdmin'
 import AvaliacoesJanelas from './AvaliacoesJanelas'
 import AvaliacoesCobertura from './AvaliacoesCobertura'
 
@@ -35,15 +38,54 @@ function nomeAluno(a: AlunoResumo) {
 
 type Aba = 'semestre' | 'atribuicoes' | 'janelas' | 'cobertura'
 
+const ABAS: [Aba, string][] = [
+  ['semestre', 'Semestre'],
+  ['atribuicoes', 'Atribuições'],
+  ['janelas', 'Períodos e liberação'],
+  ['cobertura', 'Quem já avaliou'],
+]
+
 export default function AdminAvaliacoes() {
-  const [aba, setAba] = useState<Aba>('semestre')
+  // A aba e o semestre escolhidos ficam na URL: se a tela recarregar ou a pessoa voltar para ela,
+  // continua exatamente onde estava (em vez de cair de novo em "Semestre").
+  const [params, setParams] = useSearchParams()
+  const abaParam = params.get('aba')
+  const aba: Aba = ABAS.some(([v]) => v === abaParam) ? (abaParam as Aba) : 'semestre'
+  const semParam = params.get('sem')
+  const mudarParams = (mudar: (p: URLSearchParams) => void) =>
+    setParams(
+      (atual) => {
+        const p = new URLSearchParams(atual)
+        mudar(p)
+        return p
+      },
+      { replace: true },
+    )
+  const setAba = (nova: Aba) => mudarParams((p) => p.set('aba', nova))
+
   const [semestres, setSemestres] = useState<Semestre[]>([])
-  const [semestreId, setSemestreId] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
 
+  const semestreId = useMemo(
+    () =>
+      semestres.find((s) => s.codigo === semParam)?.id ??
+      semestres.find((s) => s.atual)?.id ??
+      semestres[0]?.id ??
+      '',
+    [semestres, semParam],
+  )
+  const setSemestreId = (id: string) => {
+    const codigo = semestres.find((s) => s.id === id)?.codigo
+    if (codigo) mudarParams((p) => p.set('sem', codigo))
+  }
+
   const carregarSemestres = useCallback(async (manter?: string) => {
-    setCarregando(true)
+    // Só mostra "Carregando..." na primeira carga; nas seguintes atualiza por baixo, sem desmontar a aba.
+    setSemestres((atuais) => {
+      if (atuais.length === 0) setCarregando(true)
+      return atuais
+    })
     const { data, error } = await db()
       .from('semestres')
       .select('id, codigo, inicio, fim, atual')
@@ -55,13 +97,19 @@ export default function AdminAvaliacoes() {
     }
     const lista = (data as Semestre[]) ?? []
     setSemestres(lista)
-    setSemestreId((atual) => {
-      const alvo = manter ?? atual
-      if (alvo && lista.some((s) => s.id === alvo)) return alvo
-      return lista.find((s) => s.atual)?.id ?? lista[0]?.id ?? ''
-    })
+    const alvo = manter ? lista.find((s) => s.id === manter) : undefined
+    if (alvo) {
+      setParams(
+        (atual) => {
+          const p = new URLSearchParams(atual)
+          p.set('sem', alvo.codigo)
+          return p
+        },
+        { replace: true },
+      )
+    }
     setCarregando(false)
-  }, [])
+  }, [setParams])
 
   useEffect(() => {
     carregarSemestres()
@@ -71,14 +119,11 @@ export default function AdminAvaliacoes() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <p className="text-sm font-bold uppercase tracking-[0.12em] text-gunmetal-gray">Administração</p>
-      <h1 className="font-display text-[40px] leading-none text-gunmetal-gray md:text-[48px]">
-        Avaliações
-      </h1>
-      <p className="mt-2 max-w-3xl text-sm text-onyx-black">
-        Defina o semestre, quem avalia quem, o período de avaliação e quando os alunos veem os resultados.
-        Cada avaliador só vê os alunos que você atribuir aqui.
-      </p>
+      <CabecalhoAdmin
+        titulo="Avaliações"
+        trilha={[{ rotulo: 'Avaliações', to: '/admin/avaliacoes' }, { rotulo: ABAS.find(([v]) => v === aba)?.[1] ?? 'Semestre' }]}
+        descricao="Defina o semestre, quem avalia quem, o período de avaliação e quando os alunos veem os resultados. Cada avaliador só vê os alunos que você atribuir aqui."
+      />
 
       {erro && (
         <p role="alert" className="mt-4 border-l-4 border-mandarin-orange bg-soft-pink/60 p-3 text-sm text-onyx-black">
@@ -87,14 +132,7 @@ export default function AdminAvaliacoes() {
       )}
 
       <div role="tablist" aria-label="Seções" className="mt-6 flex flex-wrap gap-2 border-b border-gunmetal-gray/25">
-        {(
-          [
-            ['semestre', 'Semestre'],
-            ['atribuicoes', 'Atribuições'],
-            ['janelas', 'Períodos e liberação'],
-            ['cobertura', 'Quem já avaliou'],
-          ] as [Aba, string][]
-        ).map(([valor, rotulo]) => (
+        {ABAS.map(([valor, rotulo]) => (
           <button
             key={valor}
             role="tab"
@@ -181,6 +219,7 @@ function SecaoSemestre({
   const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const [diasLetivos, setDiasLetivos] = useState<number | null>(null)
   const [ocupado, setOcupado] = useState(false)
+  const [modalNovo, setModalNovo] = useState(false)
 
   useEffect(() => {
     setEdicao({ inicio: semestre?.inicio ?? '', fim: semestre?.fim ?? '' })
@@ -226,6 +265,7 @@ function SecaoSemestre({
       if (erroAtual) setMensagem({ tipo: 'erro', texto: `Semestre criado, mas não foi possível marcá-lo como atual: ${erroAtual.message}` })
     }
     setNovo({ codigo: '', inicio: '', fim: '', atual: true })
+    setModalNovo(false)
     await aoMudar(data.id)
     setOcupado(false)
     setMensagem((m) => m ?? { tipo: 'ok', texto: 'Semestre criado. Agora gere os dias letivos.' })
@@ -331,9 +371,17 @@ function SecaoSemestre({
           </ul>
         )}
 
-        <form onSubmit={criar} className="mt-6 border border-gunmetal-gray/25 p-4">
-          <h3 className="font-display text-2xl text-gunmetal-gray">Novo semestre</h3>
-          <div className="mt-2 grid grid-cols-2 gap-3">
+      </section>
+
+      <section aria-labelledby="sem-detalhe">
+        <div className="mb-3 flex justify-end">
+          <button type="button" onClick={() => setModalNovo(true)} className={botaoLaranja}>
+            Novo semestre
+          </button>
+        </div>
+        <Modal aberto={modalNovo} aoFechar={() => setModalNovo(false)} titulo="Novo semestre">
+        <form onSubmit={criar}>
+          <div className="mt-4 grid grid-cols-2 gap-3">
             <label className="col-span-2 text-sm font-bold text-gunmetal-gray sm:col-span-1">
               Código
               <input
@@ -365,13 +413,16 @@ function SecaoSemestre({
               Marcar como semestre atual
             </label>
           </div>
-          <button type="submit" disabled={ocupado} className={`${botaoLaranja} mt-3`}>
-            Criar semestre
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="submit" disabled={ocupado} className={botaoLaranja}>
+              Criar semestre
+            </button>
+            <button type="button" onClick={() => setModalNovo(false)} className={botaoLinha}>
+              Cancelar
+            </button>
+          </div>
         </form>
-      </section>
-
-      <section aria-labelledby="sem-detalhe">
+        </Modal>
         <h2 id="sem-detalhe" className="font-display text-3xl text-gunmetal-gray">
           {semestre ? `Semestre ${semestre.codigo}` : 'Semestre'}
         </h2>

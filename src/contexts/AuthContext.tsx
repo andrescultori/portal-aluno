@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabaseClient'
 import type { AllowedUser } from '../types/database'
@@ -26,6 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [papeis, setPapeis] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [naoAutorizado, setNaoAutorizado] = useState(false)
+  // Quem está logado agora (id do usuário). Serve para reconhecer que um evento de
+  // autenticação é só a mesma pessoa voltando à aba, e não um login de verdade.
+  const usuarioAtual = useRef<string | null>(null)
 
   async function carregarPerfil(currentSession: Session | null) {
     if (!currentSession?.user?.email) {
@@ -51,20 +54,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    setPerfil(data as AllowedUser)
-    setNaoAutorizado(false)
-
+    // Perfil e papéis entram juntos: se o perfil aparecesse antes, uma rota restrita por papel
+    // mandaria a pessoa para a Home por achar que ela ainda não tem o papel.
     const { data: papeisData, error: papeisErro } = await supabase.rpc('current_roles')
     setPapeis(papeisErro || !Array.isArray(papeisData) ? [] : (papeisData as string[]))
+    setPerfil(data as AllowedUser)
+    setNaoAutorizado(false)
   }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
+      usuarioAtual.current = data.session?.user?.id ?? null
       setSession(data.session)
       carregarPerfil(data.session).finally(() => setLoading(false))
     })
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const idNovo = newSession?.user?.id ?? null
+      // Sempre que a aba volta ao foco o Supabase reverifica a sessão e dispara SIGNED_IN
+      // para a MESMA pessoa. Tratar isso como login recarregava o perfil, mostrava
+      // "Carregando..." e desmontava a tela, apagando o que o usuário estava digitando.
+      // Mesma pessoa = só atualiza a sessão (token novo), sem mexer na tela.
+      if (idNovo && idNovo === usuarioAtual.current && event !== 'SIGNED_OUT') {
+        setSession(newSession)
+        return
+      }
+      usuarioAtual.current = idNovo
       setSession(newSession)
 
       // O Supabase dispara TOKEN_REFRESHED sempre que a aba volta a ficar
@@ -91,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await supabase.auth.signOut()
+    usuarioAtual.current = null
     setPerfil(null)
     setPapeis([])
     setSession(null)

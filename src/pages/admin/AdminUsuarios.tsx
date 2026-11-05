@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import type { AllowedUser, Papel, Turma } from '../../types/database'
+import CabecalhoAdmin from './CabecalhoAdmin'
 
 function detectarDelimitador(linha: string): string {
   const virgulas = (linha.match(/,/g) ?? []).length
@@ -173,7 +174,7 @@ export default function AdminUsuarios() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-[40px] leading-none text-gunmetal-gray">Usuários autorizados</h1>
+      <CabecalhoAdmin titulo="Equipe e acessos" trilha={[{ rotulo: 'Equipe' }]} />
 
       <div className="mb-6 rounded-none border border-gunmetal-gray/25 bg-white p-5">
         <h2 className="mb-2 font-medium text-gunmetal-gray">Importar whitelist (CSV)</h2>

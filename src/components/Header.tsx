@@ -126,7 +126,7 @@ export default function Header() {
     { to: '/presenca', label: 'Presença' },
     { to: '/calendario', label: 'Calendário' },
     { to: '/manual', label: 'Manual do Aluno' },
-    ...(temPapel('tutor', 'mentor', 'lider_casa') ? [{ to: '/avaliar', label: 'Avaliar alunos' }] : []),
+    ...(temPapel('tutor', 'mentor', 'lider_casa') ? [{ to: '/admin/avaliar', label: 'Avaliar alunos' }] : []),
   ]
 
   const grupos: GrupoNav[] = [
