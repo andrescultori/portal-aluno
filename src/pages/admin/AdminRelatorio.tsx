@@ -68,12 +68,12 @@ export default function AdminRelatorio() {
   const [busca, setBusca] = useState('')
   const [linhas, setLinhas] = useState<LinhaRelatorio[]>([])
   const [carregando, setCarregando] = useState(false)
-  const { temPapel, perfil } = useAuth()
+  const { temPapel } = useAuth()
   const { avisar } = useToast()
-  // Quem corrige o status: coordenação, secretaria, administração. Quem exclui um check-in: a equipe
-  // (a regra de verdade é do banco, na função excluir_checkin; aqui só escondemos o botão de quem não é da equipe).
+  // Quem corrige o status: coordenação, secretaria, administração. Quem exclui um check-in: administração,
+  // coordenação e tutor (a regra de verdade é do banco, na função excluir_checkin; aqui só escondemos o botão).
   const podeCorrigir = temPapel('admin', 'coordenacao', 'secretaria')
-  const podeApagar = perfil?.papel === 'equipe'
+  const podeApagar = temPapel('admin', 'coordenacao', 'tutor')
   const [acao, setAcao] = useState<null | { tipo: 'editar' | 'apagar'; linha: LinhaRelatorio; status: AttendanceStatus; motivo: string }>(null)
   const [ocupado, setOcupado] = useState(false)
 

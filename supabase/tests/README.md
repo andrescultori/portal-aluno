@@ -30,7 +30,7 @@ Files:
 
 - `29_faltas_tests.sql` — migration 19: absent-days list (same rule as the Presença grade, justified days, holidays, no login linked, who may read).
 
-- `30_excluir_checkin_tests.sql` — step 21: `excluir_checkin` (staff logins may, reason required, audit copy, a signed-in user with no login row is refused — the NULL hole —, students/anon refused).
+- `30_excluir_checkin_tests.sql` — steps 21–22: `excluir_checkin` (admin/coordenação/tutor may; mentor, secretaria, financeiro, a staff login with no role, students, a signed-in user with no login row — the NULL hole — and anon are refused; reason required; audit copy; `apagar_presenca` retired).
 
 Each test file runs in one transaction and rolls back.
 

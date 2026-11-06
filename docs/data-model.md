@@ -214,7 +214,7 @@ a student login cannot be turned into staff by accident.
 `public.attendance_records` has no write policy for people (check-in writes it through the Edge Function). Corrections go
 through two guarded functions, never by touching the table, the policies or the Edge Function:
 `public.corrigir_presenca(registro, status, motivo)` (admin, coordenação, secretaria) and
-`public.apagar_presenca(registro, motivo)` (admin, coordenação). Both require a reason and write `alunos.auditoria`
+`public.apagar_presenca(registro, motivo)` (admin, coordenação — **retired in migration 22**, replaced by `excluir_checkin`). Both required a reason and wrote `alunos.auditoria`
 (who, when, before/after, `motivo` — a new nullable column). A deleted record is kept in full in the audit row (`antes`),
 so it can be restored by hand; if the student checks in again the same day the normal check-in works.
 
@@ -240,16 +240,16 @@ every semester (`trabalho_escrito` → `escrita` "Escrita", `apresentacao` → `
 grades follow the new code (the foreign key got `on update cascade`); weights untouched; new semesters are seeded with the
 three. Idempotent (tested on a database that already had grades under the old codes).
 
-### 5.12 Step 21 — `excluir_checkin` (documented and fixed)
+### 5.12 Steps 21–22 — `excluir_checkin` (documented, fixed, restricted)
 
 `public.excluir_checkin(p_id, p_motivo)` was created directly in the SQL Editor (not in the repo) and is what the attendance
-screen's "Excluir check-in" calls: any staff login (`allowed_users.papel = 'equipe'`) or admin/coordenação/secretaria, reason
-required, the row is deleted and a full copy goes to `alunos.auditoria` (`antes` = the row, `depois` = `{motivo}`). The repo
-now has it (migration 21) with **one security fix**: for a signed-in user with no row in `allowed_users`, `current_papel()` is
-NULL, `NOT (false OR NULL)` is NULL, and the guard did not raise — the function deleted. The check is now
-`coalesce(current_papel(), '') = 'equipe'`. `public.apagar_presenca` (migration 17) is the stricter twin (admin/coordenação only,
-fills `auditoria.motivo`); the screen uses `excluir_checkin`. Lesson for every future guard: never `if not (… or f() = 'x')`
-with a function that can return NULL — wrap it in `coalesce`.
+screen's "Excluir check-in" calls: reason required, the row is deleted and a full copy goes to `alunos.auditoria`
+(`antes` = the row, `depois` = `{motivo}`, and since migration 22 also the `motivo` column).
+**Migration 21** put it in the repo with a security fix: for a signed-in user with no row in `allowed_users`,
+`current_papel()` is NULL, `NOT (false OR NULL)` is NULL and the guard did not raise — the function deleted. Lesson for every
+future guard: never `if not (… or f() = 'x')` with a function that can return NULL — wrap it in `coalesce`.
+**Migration 22 (owner's decision)** restricts it to the roles **admin, coordenação and tutor** (before: any staff login) —
+`has_any_role` never returns NULL — and **retires** `public.apagar_presenca` (nothing called it).
 
 ### 5.13 Screens (so far)
 
@@ -263,7 +263,7 @@ with a function that can return NULL — wrap it in `coalesce`.
 | `/admin/avaliar`, `/admin/avaliar/:categoria/:alunoId` | tutor, mentor, lider_casa | own students, evaluation form with autosave, review and submit (old `/avaliar…` URLs redirect) |
 | `/admin/usuarios` — Equipe e acessos | admin, coordenação | staff only: functions, active/inactive; reflected in the Atribuições dropdowns |
 | `/admin/turmas` — Turmas e alunos | all staff (RLS filters) | tabs: Alunos (list + filters), Acessos de alunos (portal logins), Turmas e QR Code |
-| `/admin/relatorio` — Presença | all staff read; admin/coordenação/secretaria edit status; any staff login deletes a check-in | each line has Editar (`corrigir_presenca`, migration 17) / Excluir check-in (`excluir_checkin`, migration 21), both with a mandatory reason, audited; success/error toasts; filters can come from the URL (`?turma=&de=&ate=`); deleting a class that has check-ins explains it and links to them |
+| `/admin/relatorio` — Presença | all staff read; admin/coordenação/secretaria edit status; admin/coordenação/tutor delete a check-in | each line has Editar (`corrigir_presenca`, migration 17) / Excluir check-in (`excluir_checkin`, migrations 21–22), both with a mandatory reason, audited; success/error toasts; filters can come from the URL (`?turma=&de=&ate=`); deleting a class that has check-ins explains it and links to them |
 | `/admin/avaliacoes` — Semestre › Dias sem aula | admin, coordenação, secretaria | list / undo / add days without class (`dias_letivos.aula = false`, with reason); "Buscar no Google Agenda" suggests national holidays (Google's Brazilian holiday calendar, pre-checked), the school calendar (`VITE_GOOGLE_CALENDAR_ID`, pre-checked when the title says feriado/recesso/sem aula) and bridge days (holiday on Tuesday → Monday, on Thursday → Friday; never pre-checked). Uses the public calendar API key; no migration |
 | `/admin/notas` — Notas e presença | tabs per role: Atividades and Projeto final (admin, coordenação, tutor); Presença e faltas (+ secretaria) | **Atividades:** pick the class, type `Atividade` (0–9) and `Quiz` (0–1) per student with the keyboard (Enter/↑↓), the DB computes the class grade and the average; coordenação/admin create and rename activities (never deleted). **Projeto final:** components and weights (coordenação/admin; new components start at weight 0; a note explains that equal weights = plain average of the three), grades 0–10 (2 decimals) per component, the project grade computed in the DB. **Presença e faltas:** summary + the student's absent days with *Justificar* (reason) / *Desfazer*. Tutors see only their Tutoria students; coordenação reads but cannot edit grades (RLS); the DB re-checks every write |
 | `/meu-desenvolvimento` (student portal) | the logged-in student | **only released semesters** (`alunos.meu_desenvolvimento*`, no student id is ever sent): average cards (final / Básico / Avançado), line chart of the final grade per semester (single series, fixed 0–10 scale, direct labels) with a table alternative, per-semester thin bars for each component + final, concept, approved/partial badge, and per-question means with the number of evaluators (never names or comments). Before release: "Resultados ainda não liberados". Menu link only for student logins |
