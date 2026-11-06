@@ -35,3 +35,18 @@ alter table public.allowed_users enable row level security;
 alter table public.attendance_records enable row level security;
 grant select, insert, update, delete on public.turmas, public.allowed_users, public.attendance_records
   to authenticated, service_role;
+
+-- Live helper (migration 2026-09-29_login_microsoft.sql, verbatim): the papel of the logged-in login ('aluno' | 'equipe').
+create or replace function public.current_papel()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select papel
+  from allowed_users
+  where lower(email) = lower(auth.jwt() ->> 'email') and ativo = true
+  limit 1;
+$$;
+grant execute on function public.current_papel() to authenticated, service_role;

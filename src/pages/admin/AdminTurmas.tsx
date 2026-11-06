@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../../lib/supabaseClient'
 import { hhmm } from '../../lib/datas'
@@ -24,7 +25,7 @@ export default function AdminTurmas() {
   const [qrToken, setQrToken] = useState<string | null>(null)
   const [qrCarregando, setQrCarregando] = useState(false)
   const [qrErro, setQrErro] = useState<string | null>(null)
-  const [erroLista, setErroLista] = useState<string | null>(null)
+  const [erroLista, setErroLista] = useState<ReactNode>(null)
 
   async function carregar() {
     setCarregando(true)
@@ -57,12 +58,36 @@ export default function AdminTurmas() {
     setErroLista(null)
     const { data, error } = await supabase.from('turmas').delete().eq('id', turma.id).select('id')
     if (error) {
-      // 23503 = violação de chave estrangeira: ainda há alunos ou presenças ligados à turma.
-      setErroLista(
-        error.code === '23503'
-          ? `Não dá para remover "${turma.nome}": ainda há alunos vinculados a ela ou registros de presença. Desative a turma (botão "Ativa") ou mova os alunos para outra turma antes.`
-          : `Não foi possível remover "${turma.nome}": ${error.message}`,
-      )
+      if (error.code === '23503') {
+        // violação de chave estrangeira: há check-ins registrados, ou alunos ainda vinculados à turma.
+        const { count, data: primeiro } = await supabase
+          .from('attendance_records')
+          .select('data', { count: 'exact' })
+          .eq('turma_id', turma.id)
+          .order('data', { ascending: true })
+          .limit(1)
+        if ((count ?? 0) > 0) {
+          const de = (primeiro as { data: string }[] | null)?.[0]?.data
+          setErroLista(
+            <>
+              Não dá para remover “{turma.nome}”: esta turma tem check-ins registrados ({count}). Para removê-la, primeiro é preciso excluir esses
+              check-ins; ou desative a turma (botão “Ativa”) para escondê-la sem apagar nada.{' '}
+              <Link
+                to={`/admin/relatorio?turma=${turma.id}${de ? `&de=${de}` : ''}`}
+                className="inline-flex min-h-11 items-center font-bold text-gunmetal-gray underline underline-offset-4"
+              >
+                Ver os check-ins desta turma
+              </Link>
+            </>,
+          )
+        } else {
+          setErroLista(
+            `Não dá para remover "${turma.nome}": ainda há alunos vinculados a ela. Desative a turma (botão "Ativa") ou mova os alunos para outra turma antes.`,
+          )
+        }
+      } else {
+        setErroLista(`Não foi possível remover "${turma.nome}": ${error.message}`)
+      }
     } else if (!data || data.length === 0) {
       setErroLista(`Não foi possível remover "${turma.nome}": a exclusão não foi permitida.`)
     }

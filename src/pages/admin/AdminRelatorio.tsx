@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../contexts/AuthContext'
 import Modal from '../../components/Modal'
+import { useToast } from '../../components/Toasts'
 import { horaLocal } from '../../lib/datas'
 import StatusSelo, { statusRotulo } from '../../components/StatusSelo'
 import type { AttendanceStatus, Turma } from '../../types/database'
@@ -42,8 +44,9 @@ function traduzirErro(msg: string) {
   if (msg.includes('A reason is required')) return 'Informe o motivo.'
   if (msg.includes('No change')) return 'Escolha um status diferente do atual.'
   if (msg.includes('not allowed')) return 'Você não tem permissão para isto.'
-  if (msg.includes('record not found')) return 'Este registro não existe mais (talvez já tenha sido apagado). Atualize a lista.'
-  if (msg.includes('corrigir_presenca') || msg.includes('apagar_presenca')) return 'A correção de presenças ainda não foi instalada no banco (migração 17).'
+  if (msg.includes('record not found') || msg.includes('check-in not found')) return 'Este check-in não existe mais (talvez já tenha sido excluído). A lista foi atualizada.'
+  if (msg.includes('corrigir_presenca')) return 'A correção de presenças ainda não foi instalada no banco (migração 17).'
+  if (msg.includes('excluir_checkin')) return 'A exclusão de check-ins ainda não está instalada no banco.'
   return msg
 }
 
@@ -57,19 +60,22 @@ const campo =
 
 export default function AdminRelatorio() {
   const [turmas, setTurmas] = useState<Turma[]>([])
-  const [turmaId, setTurmaId] = useState('')
-  const [inicio, setInicio] = useState(trintaDiasAtras())
-  const [fim, setFim] = useState(hoje())
+  // Os filtros podem vir da URL (?turma=&de=&ate=), por exemplo do aviso "esta turma tem check-ins registrados".
+  const [params] = useSearchParams()
+  const [turmaId, setTurmaId] = useState(params.get('turma') ?? '')
+  const [inicio, setInicio] = useState(params.get('de') ?? trintaDiasAtras())
+  const [fim, setFim] = useState(params.get('ate') ?? hoje())
   const [busca, setBusca] = useState('')
   const [linhas, setLinhas] = useState<LinhaRelatorio[]>([])
   const [carregando, setCarregando] = useState(false)
-  const { temPapel } = useAuth()
-  // Quem corrige (coordenação, secretaria, administração) e quem apaga (só coordenação e administração).
+  const { temPapel, perfil } = useAuth()
+  const { avisar } = useToast()
+  // Quem corrige o status: coordenação, secretaria, administração. Quem exclui um check-in: a equipe
+  // (a regra de verdade é do banco, na função excluir_checkin; aqui só escondemos o botão de quem não é da equipe).
   const podeCorrigir = temPapel('admin', 'coordenacao', 'secretaria')
-  const podeApagar = temPapel('admin', 'coordenacao')
+  const podeApagar = perfil?.papel === 'equipe'
   const [acao, setAcao] = useState<null | { tipo: 'editar' | 'apagar'; linha: LinhaRelatorio; status: AttendanceStatus; motivo: string }>(null)
   const [ocupado, setOcupado] = useState(false)
-  const [mensagem, setMensagem] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
 
   useEffect(() => {
     supabase
@@ -121,44 +127,50 @@ export default function AdminRelatorio() {
     e.preventDefault()
     if (!acao) return
     setOcupado(true)
-    setMensagem(null)
     const { error } =
       acao.tipo === 'editar'
         ? await supabase.rpc('corrigir_presenca', { p_registro: acao.linha.id, p_status: acao.status, p_motivo: acao.motivo })
-        : await supabase.rpc('apagar_presenca', { p_registro: acao.linha.id, p_motivo: acao.motivo })
+        : await supabase.rpc('excluir_checkin', { p_id: acao.linha.id, p_motivo: acao.motivo })
     setOcupado(false)
     if (error) {
-      setMensagem({ tipo: 'erro', texto: traduzirErro(error.message) })
+      avisar('erro', traduzirErro(error.message))
+      // se o registro já não existe, a lista está desatualizada: atualiza
+      if (error.message.includes('not found')) {
+        setAcao(null)
+        await buscar()
+      }
       return
     }
-    setMensagem({
-      tipo: 'ok',
-      texto:
-        acao.tipo === 'editar'
-          ? `Presença de ${acao.linha.aluno_nome} em ${formatarData(acao.linha.data)} corrigida para ${statusRotulo(acao.status)}. Fica registrada na auditoria, com o motivo.`
-          : `Registro de ${acao.linha.aluno_nome} em ${formatarData(acao.linha.data)} apagado. Uma cópia fica guardada na auditoria, com o motivo.`,
-    })
+    avisar(
+      'ok',
+      acao.tipo === 'editar'
+        ? `Presença de ${acao.linha.aluno_nome} em ${formatarData(acao.linha.data)} corrigida para ${statusRotulo(acao.status)}. Fica registrada na auditoria, com o motivo.`
+        : `Check-in de ${acao.linha.aluno_nome} em ${formatarData(acao.linha.data)} excluído. Uma cópia fica guardada na auditoria, com o motivo.`,
+    )
     setAcao(null)
     await buscar()
   }
 
+  const temAcoes = podeCorrigir || podeApagar
   const acoes = (l: LinhaRelatorio) =>
-    podeCorrigir ? (
+    temAcoes ? (
       <div className="flex flex-wrap justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => setAcao({ tipo: 'editar', linha: l, status: l.status, motivo: '' })}
-          className="min-h-11 px-2 text-sm font-bold text-gunmetal-gray underline underline-offset-4"
-        >
-          Editar
-        </button>
+        {podeCorrigir && (
+          <button
+            type="button"
+            onClick={() => setAcao({ tipo: 'editar', linha: l, status: l.status, motivo: '' })}
+            className="min-h-11 px-2 text-sm font-bold text-gunmetal-gray underline underline-offset-4"
+          >
+            Editar
+          </button>
+        )}
         {podeApagar && (
           <button
             type="button"
             onClick={() => setAcao({ tipo: 'apagar', linha: l, status: l.status, motivo: '' })}
             className="min-h-11 px-2 text-sm font-bold text-red-700 underline underline-offset-4"
           >
-            Excluir
+            Excluir check-in
           </button>
         )}
       </div>
@@ -274,23 +286,10 @@ export default function AdminRelatorio() {
         </div>
       </div>
 
-      <div aria-live="polite" className="mt-4">
-        {mensagem && (
-          <p
-            role={mensagem.tipo === 'erro' ? 'alert' : 'status'}
-            className={`border-l-4 p-3 text-sm text-onyx-black ${
-              mensagem.tipo === 'erro' ? 'border-mandarin-orange bg-soft-pink/60' : 'border-gunmetal-gray bg-neutral-tint'
-            }`}
-          >
-            {mensagem.texto}
-          </p>
-        )}
-      </div>
-
       <Modal
         aberto={acao !== null}
         aoFechar={() => setAcao(null)}
-        titulo={acao?.tipo === 'apagar' ? 'Excluir registro de presença' : 'Corrigir presença'}
+        titulo={acao?.tipo === 'apagar' ? 'Excluir check-in' : 'Corrigir presença'}
       >
         {acao && (
           <form onSubmit={confirmarAcao} className="mt-4 space-y-4">
@@ -322,7 +321,7 @@ export default function AdminRelatorio() {
             </label>
             {acao.tipo === 'apagar' && (
               <p className="border-l-4 border-mandarin-orange bg-soft-pink/60 p-3 text-sm text-onyx-black">
-                O registro sai da lista e das contas de presença. Uma cópia completa fica guardada na auditoria, com o seu nome e o motivo.
+                O check-in sai da lista e das contas de presença. Uma cópia completa fica guardada na auditoria, com o seu nome e o motivo.
               </p>
             )}
             <div className="flex flex-wrap gap-2">
@@ -331,7 +330,7 @@ export default function AdminRelatorio() {
                 disabled={ocupado || !acao.motivo.trim() || (acao.tipo === 'editar' && acao.status === acao.linha.status)}
                 className={botaoLaranja}
               >
-                {acao.tipo === 'apagar' ? 'Excluir registro' : 'Salvar correção'}
+                {acao.tipo === 'apagar' ? 'Excluir check-in' : 'Salvar correção'}
               </button>
               <button type="button" onClick={() => setAcao(null)} className={botaoLinha}>
                 Cancelar
@@ -360,7 +359,7 @@ export default function AdminRelatorio() {
                     <th scope="col" className="px-4 py-3 font-bold">Data</th>
                     <th scope="col" className="px-4 py-3 font-bold">Registro</th>
                     <th scope="col" className="px-4 py-3 font-bold">Status</th>
-                    {podeCorrigir && (
+                    {temAcoes && (
                       <th scope="col" className="px-4 py-3 text-right font-bold">
                         Ações
                       </th>
@@ -377,7 +376,7 @@ export default function AdminRelatorio() {
                       <td className="px-4 py-3">
                         <StatusSelo status={l.status} />
                       </td>
-                      {podeCorrigir && <td className="px-4 py-1">{acoes(l)}</td>}
+                      {temAcoes && <td className="px-4 py-1">{acoes(l)}</td>}
                     </tr>
                   ))}
                 </tbody>

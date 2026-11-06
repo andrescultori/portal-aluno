@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-
 import Shell from './components/Shell'
 import ProtectedRoute from './components/ProtectedRoute'
 import RestauraRolagem from './components/RestauraRolagem'
+import { ToastProvider } from './components/Toasts'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import ManualDoAluno from './pages/ManualDoAluno'
@@ -38,6 +39,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <RestauraRolagem />
+      <ToastProvider>
       <Shell>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -177,6 +179,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Shell>
+      </ToastProvider>
     </BrowserRouter>
   )
 }

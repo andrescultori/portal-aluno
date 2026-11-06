@@ -30,6 +30,8 @@ Files:
 
 - `29_faltas_tests.sql` — migration 19: absent-days list (same rule as the Presença grade, justified days, holidays, no login linked, who may read).
 
+- `30_excluir_checkin_tests.sql` — step 21: `excluir_checkin` (staff logins may, reason required, audit copy, a signed-in user with no login row is refused — the NULL hole —, students/anon refused).
+
 Each test file runs in one transaction and rolls back.
 
 The import dry-run (`scripts/import-geral/`) has its own unit tests: `npm run test:import` (fake data only). See `docs/import-geral.md`.
