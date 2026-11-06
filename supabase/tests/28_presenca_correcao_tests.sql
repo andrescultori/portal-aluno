@@ -1,4 +1,4 @@
--- Migration 17 tests: correct / delete a check-in record, audited. FAKE DATA ONLY.
+-- Migration 17 tests: correct a check-in record's status, audited (deleting moved to excluir_checkin, see 30_). FAKE DATA ONLY.
 begin;
 \ir 05_harness.sql
 
@@ -43,7 +43,6 @@ reset role;
 -- ---- who cannot correct
 select t.as_user('tutora@test.local');
 select t.throws_code('tutor cannot correct', $$select public.corrigir_presenca('90000000-0000-0000-0000-000000000001', 'falta', 'x')$$, '42501');
-select t.throws_code('tutor cannot delete', $$select public.apagar_presenca('90000000-0000-0000-0000-000000000001', 'x')$$, '42501');
 select t.ok('tutor direct UPDATE of the table still touches 0 rows (no policy)',
   t.affected($$update public.attendance_records set status = 'falta' where id = '90000000-0000-0000-0000-000000000001'$$) = 0);
 select t.ok('tutor direct DELETE of the table still touches 0 rows (no policy)',
@@ -55,36 +54,15 @@ reset role;
 select t.ok('nothing changed by the refused calls',
   (select status from public.attendance_records where id = '90000000-0000-0000-0000-000000000001') = 'presente');
 
--- ---- deleting
-select t.as_user('sec@test.local');
-select t.throws_code('secretaria cannot delete', $$select public.apagar_presenca('90000000-0000-0000-0000-000000000004', 'Registro duplicado')$$, '42501');
-reset role;
-select t.as_user('coord@test.local');
-select t.throws_code('delete needs a reason', $$select public.apagar_presenca('90000000-0000-0000-0000-000000000004', ' ')$$, '22023');
-select t.runs('coordenacao deletes with a reason', $$select public.apagar_presenca('90000000-0000-0000-0000-000000000004', 'Registro duplicado')$$);
-select t.throws_code('deleting twice: record not found', $$select public.apagar_presenca('90000000-0000-0000-0000-000000000004', 'Registro duplicado')$$, 'P0002');
-reset role;
-select t.ok('record is gone', not exists (select 1 from public.attendance_records where id = '90000000-0000-0000-0000-000000000004'));
-select t.ok('audit row: DELETE keeps the whole record in "antes" with the reason',
-  exists (select 1 from alunos.auditoria where tabela = 'attendance_records' and operacao = 'DELETE'
-            and registro_id = '90000000-0000-0000-0000-000000000004'
-            and antes ->> 'status' = 'presente' and antes ->> 'data' = '2026-11-05'
-            and antes ->> 'aluno_id' = '80000000-0000-0000-0000-000000000001'
-            and depois is null and motivo = 'Registro duplicado' and usuario_email = 'coord@test.local'));
-select t.ok('the student can check in again the same day (unique key is free)',
-  t.affected($$insert into public.attendance_records (aluno_id, turma_id, data, horario_checkin, status)
-               values ('80000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000001', '2026-11-05', now(), 'presente')$$) = 1);
-
--- ---- admin can do both; anon cannot
+-- ---- admin can correct; anon cannot. (Deleting a check-in is public.excluir_checkin, tested in 30_.)
 select t.as_user('adm@test.local');
 select t.runs('admin corrects', $$select public.corrigir_presenca('90000000-0000-0000-0000-000000000001', 'atraso', 'Teste admin')$$);
-select t.runs('admin deletes', $$select public.apagar_presenca('90000000-0000-0000-0000-000000000001', 'Teste admin')$$);
 reset role;
-select t.ok('audit holds all 5 changes (3 corrections + 2 deletions)',
-  (select count(*) from alunos.auditoria where tabela = 'attendance_records') = 5);
+select t.ok('audit holds the 3 corrections, each with its reason',
+  (select count(*) from alunos.auditoria where tabela = 'attendance_records' and operacao = 'UPDATE' and motivo is not null) = 3);
 set role anon;
 select t.throws('anon cannot call corrigir_presenca', $$select public.corrigir_presenca('90000000-0000-0000-0000-000000000002', 'falta', 'x')$$);
-select t.throws('anon cannot call apagar_presenca', $$select public.apagar_presenca('90000000-0000-0000-0000-000000000002', 'x')$$);
+select t.ok('apagar_presenca was retired (migration 22)', to_regprocedure('public.apagar_presenca(uuid,text)') is null);
 reset role;
 
 \echo
